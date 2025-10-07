@@ -1,0 +1,20 @@
+[user]
+    name = Your Name
+    email = your@email.example
+    # signingkey can be set by bin/keys-setup
+[core]
+    excludesfile = ~/.gitignore_global
+[pull]
+    rebase = false
+[push]
+    default = simple
+[init]
+    defaultBranch = main
+[commit]
+    gpgsign = false
+[gpg]
+    program = gpg
+[includeIf "gitdir:~/work/"]
+    path = ~/.gitconfig.work
+[includeIf "gitdir:~/personal/"]
+    path = ~/.gitconfig.personal

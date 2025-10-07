@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-$HOME/.dotfiles}"
+STOW_PKGS=("zsh" "git" "tmux" "nvim" "vim")
+
+detect_os() {
+  if [[ "$(uname)" == "Darwin" ]]; then echo "macos"; return; fi
+  if [[ -f /etc/os-release ]]; then . /etc/os-release; [[ "$ID_LIKE" == *debian* || "$ID" == "ubuntu" ]] && echo "debian" && return; fi
+  echo "unknown"
+}
+
+install_prereqs_macos() {
+  xcode-select -p >/dev/null 2>&1 || xcode-select --install || true
+  if ! command -v brew >/dev/null 2>&1; then
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zshrc"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+  brew bundle --file "$REPO_DIR/Brewfile"
+}
+
+install_prereqs_debian() {
+  sudo apt-get update -y
+  sudo apt-get install -y git curl zsh stow build-essential \
+    libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
+    libffi-dev wget ca-certificates tmux ripgrep fzf neovim
+  if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+    sudo update-alternatives --install /usr/local/bin/fd fd $(which fdfind) 10
+  fi
+  # Install Homebrew on Linux (optional but helpful for fonts, etc.)
+  if ! command -v brew >/dev/null 2>&1; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.zshrc"
+  fi
+}
+
+install_ohmyzsh() {
+  if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
+      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  fi
+}
+
+install_powerlevel10k() {
+  local theme_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+  [[ -d "$theme_dir" ]] || git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$theme_dir"
+}
+
+install_fonts() {
+  echo "Installing Hack Nerd Font (primary) and Meslo Nerd (secondary fallback)..."
+  if [[ "$(uname)" == "Darwin" ]]; then
+    brew tap homebrew/cask-fonts
+    brew install --cask font-hack-nerd-font
+    brew install --cask font-meslo-lg-nerd-font
+  else
+    mkdir -p "$HOME/.local/share/fonts"
+    # Hack Nerd
+    curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip -o /tmp/Hack.zip
+    unzip -o /tmp/Hack.zip -d "$HOME/.local/share/fonts" >/dev/null
+    # Meslo Nerd (secondary)
+    curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip -o /tmp/Meslo.zip
+    unzip -o /tmp/Meslo.zip -d "$HOME/.local/share/fonts" >/dev/null
+    fc-cache -fv >/dev/null
+  fi
+}
+
+install_nvm() {
+  if [[ ! -d "$HOME/.nvm" ]]; then
+    export PROFILE=/dev/null
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  fi
+  # shellcheck disable=SC1090
+  [[ -s "$HOME/.nvm/nvm.sh" ]] && . "$HOME/.nvm/nvm.sh"
+  nvm install --lts >/dev/null 2>&1 || true
+  nvm alias default 'lts/*'
+}
+
+install_pyenv() {
+  if ! command -v pyenv >/dev/null 2>&1; then
+    curl -fsSL https://pyenv.run | bash
+  fi
+  export PYENV_ROOT="$HOME/.pyenv"
+  export PATH="$PYENV_ROOT/bin:$PATH"
+  eval "$(pyenv init -)"
+  pyenv install -s 3.12.6
+  pyenv global 3.12.6
+}
+
+install_rbenv() {
+  if ! command -v rbenv >/dev/null 2>&1; then
+    git clone https://github.com/rbenv/rbenv.git "$HOME/.rbenv"
+    git clone https://github.com/rbenv/ruby-build.git "$HOME/.rbenv/plugins/ruby-build"
+  fi
+  export PATH="$HOME/.rbenv/bin:$PATH"
+  eval "$(rbenv init -)"
+  rbenv install -s 3.3.5
+  rbenv global 3.3.5
+}
+
+install_tpm() {
+  if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
+    git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+  fi
+}
+
+stow_dotfiles() {
+  pushd "$REPO_DIR" >/dev/null
+  for pkg in "${STOW_PKGS[@]}"; do
+    stow -R "$pkg"
+  done
+  popd >/dev/null
+}
+
+select_profile() {
+  if [[ -z "${DOTFILES_PROFILE:-}" ]]; then
+    echo "Select profile: [1] work  [2] personal"
+    read -rp "> " choice
+    case "$choice" in
+      1) DOTFILES_PROFILE=work ;;
+      2) DOTFILES_PROFILE=personal ;;
+      *) DOTFILES_PROFILE=personal ;;
+    esac
+  fi
+  export DOTFILES_PROFILE
+  local f="$REPO_DIR/profiles/${DOTFILES_PROFILE}/zshrc.profile.zsh"
+  if [[ -r "$f" ]]; then
+    # Source once now and also write a loader to ~/.zshrc.local
+    source "$f"
+    grep -q "profiles/${DOTFILES_PROFILE}" "$HOME/.zshrc.local" 2>/dev/null || {
+      echo "source \"$f\"" >> "$HOME/.zshrc.local"
+    }
+  fi
+}
+
+apply_host_overrides() {
+  local hn
+  hn="$(hostname)"
+  local z="$REPO_DIR/hosts/${hn}/zshrc.host.zsh"
+  if [[ -r "$z" ]]; then
+    source "$z"
+    grep -q "hosts/${hn}" "$HOME/.zshrc.local" 2>/dev/null || {
+      echo "source \"$z\"" >> "$HOME/.zshrc.local"
+    }
+  fi
+  local g="$REPO_DIR/hosts/${hn}/gitconfig.host"
+  if [[ -r "$g" ]]; then
+    cp -f "$g" "$HOME/.gitconfig.local"
+  fi
+}
+
+main() {
+  if [[ ! -d "$REPO_DIR/.git" ]]; then
+    mkdir -p "$(dirname "$REPO_DIR")"
+    git clone https://github.com/<you>/dotfiles "$REPO_DIR" || true
+  fi
+
+  OS=$(detect_os)
+  case "$OS" in
+    macos)  install_prereqs_macos ;;
+    debian) install_prereqs_debian ;;
+    *) echo "Unsupported OS"; exit 1 ;;
+  esac
+
+  install_ohmyzsh
+  install_powerlevel10k
+  install_fonts
+  stow_dotfiles
+  install_tpm
+  install_nvm
+  install_pyenv
+  install_rbenv
+  select_profile
+  apply_host_overrides
+
+  # Default shell to zsh if not already
+  if [[ "$SHELL" != *zsh ]]; then
+    chsh -s "$(command -v zsh)" || true
+  fi
+
+  printf "\n✅ Done. Open a new terminal.\n"
+  echo "Set your terminal font to 'Hack Nerd Font' (primary) or 'MesloLGS Nerd Font' (fallback)."
+  echo "Run 'tmux' then prefix + I to install tmux plugins."
+  echo "Optionally run: ~/.dotfiles/bin/keys-setup"
+}
+
+main "$@"

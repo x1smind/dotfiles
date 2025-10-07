@@ -1,0 +1,6 @@
+alias ll='ls -lah'
+alias gs='git status -sb'
+alias gp='git pull --rebase --autostash'
+alias gl='git log --oneline --graph --decorate -n 25'
+alias b='brew'
+alias k='kubectl'

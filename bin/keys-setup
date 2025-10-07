@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== SSH key setup ==="
+SSH_DIR="${HOME}/.ssh"
+mkdir -p "$SSH_DIR"
+chmod 700 "$SSH_DIR"
+
+if [[ ! -f "$SSH_DIR/id_ed25519" ]]; then
+  read -rp "Enter email for SSH key: " email
+  ssh-keygen -t ed25519 -a 100 -C "$email" -f "$SSH_DIR/id_ed25519" -N ""
+  echo "SSH key created: $SSH_DIR/id_ed25519"
+else
+  echo "SSH key already exists, skipping."
+fi
+
+eval "$(ssh-agent -s)" >/dev/null
+ssh-add -K "$SSH_DIR/id_ed25519" 2>/dev/null || ssh-add "$SSH_DIR/id_ed25519"
+
+echo
+echo "=== GPG key setup ==="
+if ! gpg --list-secret-keys --keyid-format=long 2>/dev/null | grep -q sec; then
+  read -rp "Generate a new GPG key now? (y/N) " yn
+  if [[ "${yn:-N}" =~ ^[Yy]$ ]]; then
+    cat > /tmp/gpg-batch <<'EOF'
+%no-protection
+Key-Type: eddsa
+Key-Curve: ed25519
+Key-Usage: sign
+Subkey-Type: ecdh
+Subkey-Curve: cv25519
+Subkey-Usage: encrypt
+Name-Real: Your Name
+Name-Email: your@email.example
+Expire-Date: 0
+%commit
+EOF
+    gpg --batch --generate-key /tmp/gpg-batch
+    rm -f /tmp/gpg-batch
+  else
+    echo "Skipping GPG generation."
+  fi
+else
+  echo "GPG key(s) already present."
+fi
+
+# Export helpful outputs
+echo
+echo "=== Public keys ==="
+[[ -f "$SSH_DIR/id_ed25519.pub" ]] && echo "SSH:" && cat "$SSH_DIR/id_ed25519.pub"
+GPG_KEY=$(gpg --list-secret-keys --keyid-format=long 2>/dev/null | awk '/sec/ {print $2}' | sed 's/.*\///' | head -n1 || true)
+if [[ -n "${GPG_KEY:-}" ]]; then
+  echo
+  echo "GPG public key (ASCII armored):"
+  gpg --armor --export "$GPG_KEY"
+fi
+
+echo
+echo "→ Add SSH key to GitHub: https://github.com/settings/keys"
+echo "→ Add GPG key to GitHub (Signing keys): https://github.com/settings/keys"
