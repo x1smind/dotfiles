@@ -24,6 +24,25 @@ git clone https://github.com/x1smind/dotfiles ~/.dotfiles
 ~/.dotfiles/bin/bootstrap
 ```
 
+### Safe dry-run
+
+Never test against your real `$HOME`. Point the bootstrapper at a temp directory and enable dry-run mode:
+
+```bash
+export DOTFILES_TARGET="$(mktemp -d)"
+export DOTFILES_PROFILE=personal
+~/.dotfiles/bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+```
+
+### Repo layout
+
+```
+packages/           # stow packages (git/, zsh/, nvim/, tmux/, vim/, …)
+profiles/<name>/    # profile overlays: work/, personal/
+hosts/<hostname>/   # host overrides, highest precedence
+bin/                # bootstrap & helper scripts
+```
+
 ## Profiles
 
 Select with `DOTFILES_PROFILE` env var or interactive prompt on first run:
@@ -33,3 +52,9 @@ Select with `DOTFILES_PROFILE` env var or interactive prompt on first run:
 ## Host overrides
 
 Put extra snippets under `hosts/$(hostname)/` and they will be sourced automatically.
+
+## Migration note (2025-10-07)
+
+- All stowable configs now live under `packages/*`. Update any local automation to call `stow -d packages`.
+- `bin/bootstrap` gained `--dry-run`, `--target`, and `--profile` flags; update scripts and CI jobs accordingly.
+- Use `test/smoke.sh` to validate stow link plans against a disposable `$DOTFILES_TARGET`.

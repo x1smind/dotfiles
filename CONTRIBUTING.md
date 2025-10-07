@@ -38,8 +38,8 @@ Cross-platform dotfiles + bootstrap for macOS and Linux (Debian/Ubuntu family | 
 .dotfiles/
   bin/                # bootstrap & helper scripts (POSIX sh if possible)
   packages/           # stow packages (git/, zsh/, nvim/, tmux/, etc.)
-    zsh/.zshrc
     git/.gitconfig
+    zsh/.zshrc
     nvim/.config/nvim/...
   profiles/           # profile overlays: work/, personal/
   hosts/$(hostname)/  # host overlays (lowest precedence: base < profile < host)
@@ -58,13 +58,13 @@ cd ~/.dotfiles
 # never test against your real $HOME
 export DOTFILES_TARGET="$(mktemp -d)"
 export DOTFILES_PROFILE=personal
-bin/bootstrap --dry-run
+bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 ```
 
 ### Quick edit loop
 
 * Make changes under `packages/*` or `profiles/*`.
-* Use `stow -t "$DOTFILES_TARGET" <package>` to check link plans.
+* Use `stow -d packages -t "$DOTFILES_TARGET" <package>` to check link plans.
 * Add minimal fixtures to `test/` when behavior changes.
 
 ---
@@ -88,10 +88,10 @@ command -v shfmt >/dev/null && shfmt -d . || true
 
 # 2) Bootstrap dry-run into temp HOME
 export DOTFILES_TARGET="$(mktemp -d)"
-bin/bootstrap --dry-run
+bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 
 # 3) Stow simulation
-stow -n -v -t "$DOTFILES_TARGET" packages/* || true
+stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 
 # 4) Minimal cross-distro smoke tests (containers if available)
 test/smoke.sh   # see test/ for examples

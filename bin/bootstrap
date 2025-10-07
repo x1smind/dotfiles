@@ -1,43 +1,153 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$HOME/.dotfiles}"
-STOW_PKGS=("zsh" "git" "tmux" "nvim" "vim")
+REAL_HOME="${HOME}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DEFAULT="${SCRIPT_DIR}/.."
+[[ -d "$REPO_DEFAULT/.git" ]] || REPO_DEFAULT="$REAL_HOME/.dotfiles"
+REPO_DIR="${REPO_DIR:-$REPO_DEFAULT}"
+STOW_PKGS=("git" "zsh" "tmux" "nvim" "vim")
+TARGET_HOME="${DOTFILES_TARGET:-$REAL_HOME}"
+DRY_RUN=0
+
+usage() {
+  cat <<'EOF'
+Usage: bootstrap [--dry-run] [--target DIR] [--profile work|personal]
+  --dry-run     Log actions without mutating the system.
+  --target DIR  Override DOTFILES_TARGET (defaults to $HOME).
+  --profile     Pre-select DOTFILES_PROFILE without prompt.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    --target)
+      [[ -n "${2:-}" ]] || { echo "--target requires DIR" >&2; exit 2; }
+      TARGET_HOME="$2"
+      shift
+      ;;
+    --profile)
+      [[ -n "${2:-}" ]] || { echo "--profile requires a value" >&2; exit 2; }
+      DOTFILES_PROFILE="$2"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown flag: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+log() { printf '>> %s\n' "$*"; }
+
+append_unique_line() {
+  local file="$1"
+  local line="$2"
+  if (( DRY_RUN )); then
+    log "[dry-run] append '${line}' -> ${file}"
+    return 0
+  fi
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+  grep -qxF "$line" "$file" || printf '%s\n' "$line" >> "$file"
+}
+
+ensure_dir() {
+  if (( DRY_RUN )); then
+    log "[dry-run] mkdir -p $1"
+    return 0
+  fi
+  mkdir -p "$1"
+}
 
 detect_os() {
-  if [[ "$(uname)" == "Darwin" ]]; then echo "macos"; return; fi
-  if [[ -f /etc/os-release ]]; then . /etc/os-release; [[ "$ID_LIKE" == *debian* || "$ID" == "ubuntu" ]] && echo "debian" && return; fi
+  if [[ "$(uname)" == "Darwin" ]]; then
+    echo "macos"
+    return
+  fi
+  if [[ -f /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    if [[ "$ID" == "fedora" || "$ID_LIKE" == *fedora* || "$ID_LIKE" == *rhel* ]]; then
+      echo "fedora"
+      return
+    fi
+    if [[ "$ID" == "ubuntu" || "$ID_LIKE" == *debian* ]]; then
+      echo "debian"
+      return
+    fi
+  fi
   echo "unknown"
 }
 
 install_prereqs_macos() {
-  xcode-select -p >/dev/null 2>&1 || xcode-select --install || true
+  if (( DRY_RUN )); then
+    log "[dry-run] Install macOS prerequisites via Homebrew bundle"
+    return
+  fi
+  if ! xcode-select -p >/dev/null 2>&1; then
+    xcode-select --install || true
+  fi
   if ! command -v brew >/dev/null 2>&1; then
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zshrc"
+    append_unique_line "$TARGET_HOME/.zshrc" 'eval "$(/opt/homebrew/bin/brew shellenv)"'
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
   brew bundle --file "$REPO_DIR/Brewfile"
 }
 
 install_prereqs_debian() {
-  sudo apt-get update -y
-  sudo apt-get install -y git curl zsh stow build-essential \
-    libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
-    libffi-dev wget ca-certificates tmux ripgrep fzf neovim
-  if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
-    sudo update-alternatives --install /usr/local/bin/fd fd $(which fdfind) 10
+  if (( DRY_RUN )); then
+    log "[dry-run] sudo apt-get update -y"
+    log "[dry-run] sudo apt-get install -y (linux/apt-packages.txt)"
+    log "[dry-run] Handle fd alternative if needed"
+    log "[dry-run] Optional Homebrew on Linux bootstrap"
+    return
   fi
-  # Install Homebrew on Linux (optional but helpful for fonts, etc.)
+  sudo apt-get update -y
+  mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/apt-packages.txt" || true)
+  if ((${#packages[@]})); then
+    sudo apt-get install -y "${packages[@]}"
+  fi
+  if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+    sudo update-alternatives --install /usr/local/bin/fd fd "$(command -v fdfind)" 10
+  fi
   if ! command -v brew >/dev/null 2>&1; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
-    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$HOME/.zshrc"
+    if [[ -d ~/.linuxbrew ]]; then
+      eval "$(~/.linuxbrew/bin/brew shellenv)"
+    elif [[ -d /home/linuxbrew/.linuxbrew ]]; then
+      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
+    append_unique_line "$TARGET_HOME/.zshrc" 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+  fi
+}
+
+install_prereqs_fedora() {
+  if (( DRY_RUN )); then
+    log "[dry-run] sudo dnf makecache"
+    log "[dry-run] sudo dnf install -y (linux/dnf-packages.txt)"
+    return
+  fi
+  sudo dnf makecache
+  mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/dnf-packages.txt" || true)
+  if ((${#packages[@]})); then
+    sudo dnf install -y "${packages[@]}"
   fi
 }
 
 install_ohmyzsh() {
+  if (( DRY_RUN )); then
+    log "[dry-run] Install Oh My Zsh into $HOME/.oh-my-zsh"
+    return
+  fi
   if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
     RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
       sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
@@ -46,31 +156,44 @@ install_ohmyzsh() {
 
 install_powerlevel10k() {
   local theme_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+  if (( DRY_RUN )); then
+    log "[dry-run] Ensure powerlevel10k exists at $theme_dir"
+    return
+  fi
   [[ -d "$theme_dir" ]] || git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$theme_dir"
 }
 
 install_fonts() {
+  if (( DRY_RUN )); then
+    log "[dry-run] Install Hack & Meslo Nerd fonts (macOS via brew cask, Linux via ~/.local/share/fonts)"
+    return
+  fi
   echo "Installing Hack Nerd Font (primary) and Meslo Nerd (secondary fallback)..."
   if [[ "$(uname)" == "Darwin" ]]; then
     brew tap homebrew/cask-fonts
     brew install --cask font-hack-nerd-font
     brew install --cask font-meslo-lg-nerd-font
   else
-    mkdir -p "$HOME/.local/share/fonts"
-    # Hack Nerd
+    local font_dir="$HOME/.local/share/fonts"
+    mkdir -p "$font_dir"
     curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip -o /tmp/Hack.zip
-    unzip -o /tmp/Hack.zip -d "$HOME/.local/share/fonts" >/dev/null
-    # Meslo Nerd (secondary)
+    unzip -o /tmp/Hack.zip -d "$font_dir" >/dev/null
     curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip -o /tmp/Meslo.zip
-    unzip -o /tmp/Meslo.zip -d "$HOME/.local/share/fonts" >/dev/null
+    unzip -o /tmp/Meslo.zip -d "$font_dir" >/dev/null
     fc-cache -fv >/dev/null
   fi
 }
 
 install_nvm() {
+  if (( DRY_RUN )); then
+    log "[dry-run] Install nvm under $HOME/.nvm and ensure LTS default"
+    return
+  fi
   if [[ ! -d "$HOME/.nvm" ]]; then
-    export PROFILE=/dev/null
-    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    (
+      export PROFILE=/dev/null
+      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    )
   fi
   # shellcheck disable=SC1090
   [[ -s "$HOME/.nvm/nvm.sh" ]] && . "$HOME/.nvm/nvm.sh"
@@ -79,6 +202,10 @@ install_nvm() {
 }
 
 install_pyenv() {
+  if (( DRY_RUN )); then
+    log "[dry-run] Install pyenv under $HOME/.pyenv and set 3.12.6 as global"
+    return
+  fi
   if ! command -v pyenv >/dev/null 2>&1; then
     curl -fsSL https://pyenv.run | bash
   fi
@@ -90,6 +217,10 @@ install_pyenv() {
 }
 
 install_rbenv() {
+  if (( DRY_RUN )); then
+    log "[dry-run] Install rbenv under $HOME/.rbenv and set 3.3.5 as global"
+    return
+  fi
   if ! command -v rbenv >/dev/null 2>&1; then
     git clone https://github.com/rbenv/rbenv.git "$HOME/.rbenv"
     git clone https://github.com/rbenv/ruby-build.git "$HOME/.rbenv/plugins/ruby-build"
@@ -101,15 +232,26 @@ install_rbenv() {
 }
 
 install_tpm() {
-  if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
-    git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+  local tpm_dir="$HOME/.tmux/plugins/tpm"
+  if (( DRY_RUN )); then
+    log "[dry-run] Ensure TPM exists at $tpm_dir"
+    return
+  fi
+  if [[ ! -d "$tpm_dir" ]]; then
+    git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
   fi
 }
 
 stow_dotfiles() {
-  pushd "$REPO_DIR" >/dev/null
+  ensure_dir "$HOME"
+  pushd "$REPO_DIR/packages" >/dev/null
   for pkg in "${STOW_PKGS[@]}"; do
-    stow -R "$pkg"
+    if (( DRY_RUN )); then
+      log "[dry-run] stow -n --target \"$HOME\" \"$pkg\""
+      stow -n --target "$HOME" "$pkg"
+    else
+      stow --target "$HOME" -R "$pkg"
+    fi
   done
   popd >/dev/null
 }
@@ -127,11 +269,12 @@ select_profile() {
   export DOTFILES_PROFILE
   local f="$REPO_DIR/profiles/${DOTFILES_PROFILE}/zshrc.profile.zsh"
   if [[ -r "$f" ]]; then
-    # Source once now and also write a loader to ~/.zshrc.local
-    source "$f"
-    grep -q "profiles/${DOTFILES_PROFILE}" "$HOME/.zshrc.local" 2>/dev/null || {
-      echo "source \"$f\"" >> "$HOME/.zshrc.local"
-    }
+    if (( DRY_RUN )); then
+      log "[dry-run] Source profile $f and append loader to $HOME/.zshrc.local"
+    else
+      source "$f"
+      append_unique_line "$HOME/.zshrc.local" "source \"$f\""
+    fi
   fi
 }
 
@@ -140,29 +283,43 @@ apply_host_overrides() {
   hn="$(hostname)"
   local z="$REPO_DIR/hosts/${hn}/zshrc.host.zsh"
   if [[ -r "$z" ]]; then
-    source "$z"
-    grep -q "hosts/${hn}" "$HOME/.zshrc.local" 2>/dev/null || {
-      echo "source \"$z\"" >> "$HOME/.zshrc.local"
-    }
+    if (( DRY_RUN )); then
+      log "[dry-run] Source host override $z and append loader to $HOME/.zshrc.local"
+    else
+      source "$z"
+      append_unique_line "$HOME/.zshrc.local" "source \"$z\""
+    fi
   fi
   local g="$REPO_DIR/hosts/${hn}/gitconfig.host"
   if [[ -r "$g" ]]; then
-    cp -f "$g" "$HOME/.gitconfig.local"
+    if (( DRY_RUN )); then
+      log "[dry-run] Copy $g -> $HOME/.gitconfig.local"
+    else
+      cp -f "$g" "$HOME/.gitconfig.local"
+    fi
   fi
 }
 
 main() {
   if [[ ! -d "$REPO_DIR/.git" ]]; then
-    mkdir -p "$(dirname "$REPO_DIR")"
-    git clone https://github.com/<you>/dotfiles "$REPO_DIR" || true
+    if (( DRY_RUN )); then
+      log "[dry-run] Clone dotfiles repo into $REPO_DIR"
+    else
+      ensure_dir "$(dirname "$REPO_DIR")"
+      git clone https://github.com/<you>/dotfiles "$REPO_DIR" || true
+    fi
   fi
 
   OS=$(detect_os)
   case "$OS" in
     macos)  install_prereqs_macos ;;
     debian) install_prereqs_debian ;;
-    *) echo "Unsupported OS"; exit 1 ;;
+    fedora) install_prereqs_fedora ;;
+    *) echo "Unsupported OS: $OS" >&2; exit 1 ;;
   esac
+
+  local previous_home="$HOME"
+  export HOME="$TARGET_HOME"
 
   install_ohmyzsh
   install_powerlevel10k
@@ -175,15 +332,24 @@ main() {
   select_profile
   apply_host_overrides
 
-  # Default shell to zsh if not already
   if [[ "$SHELL" != *zsh ]]; then
-    chsh -s "$(command -v zsh)" || true
+    if (( DRY_RUN )); then
+      log "[dry-run] chsh -s $(command -v zsh)"
+    else
+      chsh -s "$(command -v zsh)" || true
+    fi
   fi
 
-  printf "\n✅ Done. Open a new terminal.\n"
-  echo "Set your terminal font to 'Hack Nerd Font' (primary) or 'MesloLGS Nerd Font' (fallback)."
-  echo "Run 'tmux' then prefix + I to install tmux plugins."
-  echo "Optionally run: ~/.dotfiles/bin/keys-setup"
+  export HOME="$previous_home"
+
+  if (( DRY_RUN )); then
+    printf "\n✅ Dry run complete. No changes were made.\n"
+  else
+    printf "\n✅ Done. Open a new terminal.\n"
+    echo "Set your terminal font to 'Hack Nerd Font' (primary) or 'MesloLGS Nerd Font' (fallback)."
+    echo "Run 'tmux' then prefix + I to install tmux plugins."
+    echo "Optionally run: ~/.dotfiles/bin/keys-setup"
+  fi
 }
 
 main "$@"

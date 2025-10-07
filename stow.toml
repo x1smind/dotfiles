@@ -1,2 +1,3 @@
 [dotfiles]
+dir = "packages"
 target = "~"

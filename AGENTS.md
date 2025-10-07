@@ -9,7 +9,7 @@ This repo is **agent-friendly**. The following tasks and prompts are designed fo
 
   * `DOTFILES_TARGET=$(mktemp -d)`
   * `DOTFILES_PROFILE=personal` (or as specified)
-* Prefer dry-run flags (`--dry-run`, `stow -n`).
+* Prefer dry-run flags (`--dry-run`, `--target`, `stow -n`).
 * Log commands before running; capture exit codes and stdout/stderr.
 
 ---
@@ -49,7 +49,7 @@ This repo is **agent-friendly**. The following tasks and prompts are designed fo
 
 **Prompt:**
 
-> Run `bin/bootstrap --dry-run` with `DOTFILES_TARGET=$(mktemp -d)` on Ubuntu, Fedora, and macOS contexts. Report: (a) commands that would write to real `$HOME`, (b) package managers invoked, (c) missing preflight checks, (d) steps lacking error handling. Propose minimal diffs to fix.
+> Run `DOTFILES_TARGET=$(mktemp -d) bin/bootstrap --dry-run --target "$DOTFILES_TARGET"` on Ubuntu, Fedora, and macOS contexts. Report: (a) commands that would write to real `$HOME`, (b) package managers invoked, (c) missing preflight checks, (d) steps lacking error handling. Propose minimal diffs to fix.
 
 **Success criteria:**
 
@@ -64,7 +64,7 @@ This repo is **agent-friendly**. The following tasks and prompts are designed fo
 
 **Prompt:**
 
-> Compute `stow -n -v -t "$DOTFILES_TARGET" packages/*` then layer `profiles/$DOTFILES_PROFILE` and `hosts/$(hostname)` overlays. Flag collisions, cycles, or files outside `$HOME`. Suggest renames or `.stow-local-ignore` rules.
+> Compute `stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages)` then layer `profiles/$DOTFILES_PROFILE` and `hosts/$(hostname)` overlays. Flag collisions, cycles, or files outside `$HOME`. Suggest renames or `.stow-local-ignore` rules.
 
 **Success criteria:**
 
@@ -157,7 +157,7 @@ Seed ideas:
 
 1. Parse README.md and `bin/bootstrap` for flags & profile handling.
 2. List all files under `packages/`, `profiles/`, `hosts/`.
-3. Compute link plan with `stow -n -t "$DOTFILES_TARGET"`.
+3. Compute link plan with `stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages)`.
 
 **Propose changes**
 4. Emit a markdown report (sections mirror task catalog).
@@ -177,8 +177,8 @@ Place these in `test/` (agents can call them):
 
   * Spins up containers (ubuntu, fedora) if available, sets `DOTFILES_TARGET`, and runs:
 
-    * `bin/bootstrap --dry-run`
-    * `stow -n -v -t "$DOTFILES_TARGET" packages/*`
+    * `bin/bootstrap --dry-run --target "$DOTFILES_TARGET"`
+    * `stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages)`
 * `test/nvim.sh` (optional)
 
   * Headless plugin sync and health checks (skip if `nvim` missing).
