@@ -11,6 +11,10 @@ Cross‑platform dotfiles + bootstrap for **macOS** and **Linux (Debian/Ubuntu f
 - Per‑host overrides
 - SSH & GPG bootstrap helpers
 
+## Requirements
+
+- Administrator privileges (sudo rights) so the bootstrapper can install GNU Stow and other prerequisites when needed.
+
 ## One‑shot install
 
 ```bash

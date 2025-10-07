@@ -242,8 +242,56 @@ install_tpm() {
   fi
 }
 
+ensure_stow() {
+  local os="$1"
+  if command -v stow >/dev/null 2>&1; then
+    return
+  fi
+  case "$os" in
+    macos)
+      if (( DRY_RUN )); then
+        log "[dry-run] Ensure GNU Stow via: brew install stow"
+        return
+      else
+        log "Installing GNU Stow via Homebrew"
+        brew install stow
+      fi
+      ;;
+    debian)
+      if (( DRY_RUN )); then
+        log "[dry-run] Ensure GNU Stow via: sudo apt-get install -y stow"
+        return
+      else
+        log "Installing GNU Stow via apt-get"
+        sudo apt-get install -y stow
+      fi
+      ;;
+    fedora)
+      if (( DRY_RUN )); then
+        log "[dry-run] Ensure GNU Stow via: sudo dnf install -y stow"
+        return
+      else
+        log "Installing GNU Stow via dnf"
+        sudo dnf install -y stow
+      fi
+      ;;
+    *)
+      echo "GNU Stow is required but automatic installation is unsupported for OS: $os" >&2
+      exit 1
+      ;;
+  esac
+}
+
 stow_dotfiles() {
   ensure_dir "$HOME"
+  if ! command -v stow >/dev/null 2>&1; then
+    if (( DRY_RUN )); then
+      log "[dry-run] Skip stow linking (GNU Stow not available)"
+      return
+    fi
+    echo "GNU Stow is required but was not installed successfully." >&2
+    exit 1
+  fi
   pushd "$REPO_DIR/packages" >/dev/null
   for pkg in "${STOW_PKGS[@]}"; do
     if (( DRY_RUN )); then
@@ -324,6 +372,7 @@ main() {
   install_ohmyzsh
   install_powerlevel10k
   install_fonts
+  ensure_stow "$OS"
   stow_dotfiles
   install_tpm
   install_nvm
