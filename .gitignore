@@ -8,3 +8,7 @@ dist/
 .secrets.zsh
 .vscode/
 .idea/
+docker/.env
+docker/.env.local
+docker/.cache/
+docker/volumes/

@@ -1,0 +1,18 @@
+# VCS metadata
+.git
+.github
+
+# macOS metadata
+.DS_Store
+
+# Build outputs and caches
+node_modules
+dist
+tmp
+*.log
+
+# Local environment overrides
+.env
+docker/.env.local
+docker/volumes/
+docker/.cache/

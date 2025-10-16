@@ -38,6 +38,21 @@ export DOTFILES_PROFILE=personal
 ~/.dotfiles/bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 ```
 
+## Testing
+
+### Docker smoke tests
+
+Use the Docker harness to exercise the one-shot installer inside disposable Ubuntu and Fedora containers:
+
+```bash
+make docker-build            # build/update the container images
+make docker-dry              # run bootstrap --dry-run against a temp $HOME
+make docker-install          # run the real installer against a temp $HOME
+make docker-down             # stop containers when finished
+```
+
+Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
 ### Repo layout
 
 ```

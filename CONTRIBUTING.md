@@ -67,6 +67,19 @@ bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 * Use `stow -d packages -t "$DOTFILES_TARGET" <package>` to check link plans.
 * Add minimal fixtures to `test/` when behavior changes.
 
+### Docker harness
+
+Exercise the one-shot installer in disposable Ubuntu and Fedora containers:
+
+```bash
+make docker-build            # build/update container images
+make docker-dry              # bootstrap --dry-run in each distro
+make docker-install          # real install into temp $HOME (optional)
+make docker-down             # stop containers when done
+```
+
+Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
 ---
 
 ## Commit & PR guidelines
@@ -94,7 +107,10 @@ bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 
 # 4) Minimal cross-distro smoke tests (containers if available)
-test/smoke.sh   # see test/ for examples
+make docker-build
+make docker-dry
+# run this when you need to validate the full install path
+make docker-install
 
 # 5) Neovim health (optional)
 nvim --headless "+Lazy! sync" "+qall" || true

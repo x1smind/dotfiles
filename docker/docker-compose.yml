@@ -1,0 +1,24 @@
+x-default-env: &default-env
+  DOTFILES_PROFILE: ${DOTFILES_PROFILE:-personal}
+
+x-default-service: &default-service
+  init: true
+  working_dir: /workspace
+  environment: *default-env
+  volumes:
+    - ..:/workspace
+
+services:
+  ubuntu:
+    <<: *default-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+    command: sleep infinity
+
+  fedora:
+    <<: *default-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.fedora
+    command: sleep infinity

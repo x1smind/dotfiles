@@ -142,7 +142,7 @@ Seed ideas:
 * `DOTFILES_FEATURES="nvim,tmux,fonts"` to opt-in/out modules.
 * Per-package `install-*.sh` with `--dry-run`.
 * `stow --adopt` migration helper.
-* `test/smoke.sh` with distro matrix (Ubuntu, Fedora) via containers.
+* Docker harness (`make docker-dry` / `make docker-install`) with distro matrix (Ubuntu, Fedora).
 * Optional **chezmoi** importer/exporter for users migrating in.
 
 **Prompt:**
@@ -175,10 +175,9 @@ Place these in `test/` (agents can call them):
 
 * `test/smoke.sh`
 
-  * Spins up containers (ubuntu, fedora) if available, sets `DOTFILES_TARGET`, and runs:
-
-    * `bin/bootstrap --dry-run --target "$DOTFILES_TARGET"`
-    * `stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages)`
+  * `./test/smoke.sh dry` → wraps `bin/bootstrap --dry-run --target "$DOTFILES_TARGET"` and a full `stow -n` plan.
+  * `./test/smoke.sh real` → runs the installer end-to-end against a temp `$HOME`.
+  * Use `make docker-dry` / `make docker-install` to run these flows inside Ubuntu and Fedora containers (working dir `/workspace`, profile via `DOTFILES_PROFILE`).
 * `test/nvim.sh` (optional)
 
   * Headless plugin sync and health checks (skip if `nvim` missing).
