@@ -68,6 +68,20 @@ make test-brew               # simulate macOS bootstrap with stubbed Homebrew
 ./test/macos.sh real         # (macOS only) run bin/bootstrap --dry-run against a temp HOME
 ```
 
+### 🔄 Migration Note (Oct 2025)
+The top-level `Brewfile` has been moved to `macos/Brewfile`.
+
+**What to do:**
+1. Update any local scripts or aliases to:
+   ```bash
+   brew bundle --file=macos/Brewfile
+   ```
+2. Remove any stale lockfile:
+   ```bash
+   rm -f Brewfile.lock.json
+   ```
+3. If using Make targets (`make brew` or `make bootstrap`), no action needed — they already reference `macos/Brewfile`.
+
 The stubbed tests assert an idempotent `.zprofile`, validate Homebrew detection for both Intel and Apple Silicon layouts, and block accidental `sudo`/`/etc` mutations when `DOTFILES_TEST_MODE=macos` is set.
 
 The Homebrew bundle now resides in `macos/Brewfile`. During bootstrap a preflight updates Homebrew and automatically untaps the deprecated `homebrew/cask-fonts` tap before running `brew bundle`.
