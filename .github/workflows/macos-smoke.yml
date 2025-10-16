@@ -1,0 +1,26 @@
+name: macOS Smoke
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+  schedule:
+    - cron: '0 7 * * 1'
+
+jobs:
+  macos:
+    runs-on: macos-14
+    if: ${{ github.event_name != 'schedule' || github.ref == 'refs/heads/main' }}
+    env:
+      DOTFILES_PROFILE: personal
+    steps:
+      - uses: actions/checkout@v4
+      - name: macOS bootstrap stubs
+        run: make test-brew
+      - name: Dry-run bootstrap on macOS
+        run: ./test/macos.sh real

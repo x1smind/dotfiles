@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+TEST_MODE_ACTIVE=0
+if [[ -n "${DOTFILES_TEST_MODE:-}" ]]; then
+  TEST_MODE_ACTIVE=1
+fi
+TEST_OS="${DOTFILES_TEST_OS:-${DOTFILES_TEST_MODE:-}}"
+
+if (( TEST_MODE_ACTIVE )) && [[ "$TEST_OS" == "macos" ]]; then
+  sudo() {
+    echo "Refusing to run sudo during DOTFILES_TEST_MODE (macos)" >&2
+    exit 97
+  }
+fi
+
+DETECTED_UNAME="${DOTFILES_FAKE_UNAME:-$(uname)}"
+# shellcheck disable=SC2034
+DETECTED_ARCH="${DOTFILES_FAKE_ARCH:-$(uname -m)}"
+
 REAL_HOME="${HOME}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DEFAULT="${SCRIPT_DIR}/.."
@@ -48,6 +65,18 @@ done
 
 log() { printf '>> %s\n' "$*"; }
 
+assert_safe_path() {
+  local path="$1"
+  if (( TEST_MODE_ACTIVE )) && [[ "$TEST_OS" == "macos" ]]; then
+    case "$path" in
+      /etc|/etc/*)
+        echo "Refusing to modify $path under DOTFILES_TEST_MODE (macos)" >&2
+        exit 98
+        ;;
+    esac
+  fi
+}
+
 sanity_checks() {
   local missing=()
   local cmd
@@ -66,6 +95,7 @@ sanity_checks() {
 append_unique_line() {
   local file="$1"
   local line="$2"
+  assert_safe_path "$file"
   if (( DRY_RUN )); then
     log "[dry-run] append '${line}' -> ${file}"
     return 0
@@ -76,6 +106,7 @@ append_unique_line() {
 }
 
 ensure_dir() {
+  assert_safe_path "$1"
   if (( DRY_RUN )); then
     log "[dry-run] mkdir -p $1"
     return 0
@@ -91,6 +122,7 @@ trim_leading_whitespace() {
 
 backup_conflict_path() {
   local target="$1"
+  assert_safe_path "$target"
   if [[ ! -e "$target" && ! -L "$target" ]]; then
     return
   fi
@@ -106,6 +138,7 @@ backup_conflict_path() {
     fi
     ((suffix++))
   done
+  assert_safe_path "$backup"
   if (( DRY_RUN )); then
     log "[dry-run] move ${target} -> ${backup} (pre-stow backup)"
     return
@@ -116,7 +149,7 @@ backup_conflict_path() {
 }
 
 detect_os() {
-  if [[ "$(uname)" == "Darwin" ]]; then
+  if [[ "$DETECTED_UNAME" == "Darwin" ]]; then
     echo "macos"
     return
   fi
@@ -135,20 +168,133 @@ detect_os() {
   echo "unknown"
 }
 
-install_prereqs_macos() {
+detect_brew_bin() {
+  if [[ -n "${DOTFILES_BREW_BIN:-}" && -x "${DOTFILES_BREW_BIN}" ]]; then
+    printf '%s\n' "${DOTFILES_BREW_BIN}"
+    return 0
+  fi
+  if command -v brew >/dev/null 2>&1; then
+    command -v brew
+    return 0
+  fi
+  if (( TEST_MODE_ACTIVE )) && [[ "$TEST_OS" == "macos" ]]; then
+    return 1
+  fi
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    printf '%s\n' "/opt/homebrew/bin/brew"
+    return 0
+  fi
+  if [[ -x /usr/local/bin/brew ]]; then
+    printf '%s\n' "/usr/local/bin/brew"
+    return 0
+  fi
+  return 1
+}
+
+install_homebrew() {
+  if [[ -n "${DOTFILES_BREW_INSTALLER:-}" ]]; then
+    if (( DRY_RUN )); then
+      log "[dry-run] Invoke custom Homebrew installer: ${DOTFILES_BREW_INSTALLER}"
+      return 0
+    fi
+    "${DOTFILES_BREW_INSTALLER}"
+    return
+  fi
   if (( DRY_RUN )); then
-    log "[dry-run] Install macOS prerequisites via Homebrew bundle"
+    log "[dry-run] Install Homebrew via official script"
+    return
+  fi
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+}
+
+ensure_brew_shellenv_line() {
+  local brew_bin="$1"
+  local dest="${2:-$TARGET_HOME/.zprofile}"
+  local line
+  line=$(printf 'eval "$(%q shellenv)"' "$brew_bin")
+  if (( DRY_RUN )); then
+    log "[dry-run] ensure ${dest} exports Homebrew shellenv via ${brew_bin}"
+    return
+  fi
+  assert_safe_path "$dest"
+  mkdir -p "$(dirname "$dest")"
+  touch "$dest"
+  local tmp
+  tmp="$(mktemp "${dest}.XXXXXX")"
+  awk -v line="$line" '
+    /brew shellenv/ {next}
+    {print}
+    END {print line}
+  ' "$dest" > "$tmp"
+  mv "$tmp" "$dest"
+}
+
+_brew_preflight() {
+  local brew_bin="${1:-}"
+  [[ -n "$brew_bin" ]] || return 0
+
+  local log_prefix=""
+  if (( DRY_RUN )); then
+    log_prefix="[dry-run] "
+    log "${log_prefix}${brew_bin} update --quiet"
+  elif (( TEST_MODE_ACTIVE )); then
+    log_prefix="[test] "
+    log "${log_prefix}${brew_bin} update --quiet"
+    "${brew_bin}" update --quiet >/dev/null 2>&1
+  else
+    "${brew_bin}" update --quiet >/dev/null 2>&1
+  fi
+
+  local tap_list
+  tap_list="$("${brew_bin}" tap 2>/dev/null || true)"
+  if grep -qx 'homebrew/cask-fonts' <<<"$tap_list"; then
+    if (( DRY_RUN )); then
+      log "${log_prefix}${brew_bin} untap homebrew/cask-fonts"
+      return 0
+    fi
+    if (( TEST_MODE_ACTIVE )); then
+      log "${log_prefix}${brew_bin} untap homebrew/cask-fonts"
+    else
+      log "Untapping deprecated homebrew/cask-fonts tap"
+    fi
+    if ! "${brew_bin}" untap homebrew/cask-fonts >/dev/null 2>&1; then
+      log "Failed to untap homebrew/cask-fonts (continuing)"
+    fi
+  fi
+}
+
+install_prereqs_macos() {
+  local brewfile="${REPO_DIR}/macos/Brewfile"
+  if (( DRY_RUN )); then
+    log "[dry-run] Verify Xcode Command Line Tools presence"
+    if detect_brew_bin >/dev/null 2>&1; then
+      local brew_bin
+      brew_bin="$(detect_brew_bin)"
+      log "[dry-run] Homebrew detected at ${brew_bin}"
+      log "[dry-run] ensure ${TARGET_HOME}/.zprofile contains eval for ${brew_bin}"
+      log "[dry-run] ${brew_bin} update --quiet"
+      log "[dry-run] ${brew_bin} untap homebrew/cask-fonts (if present)"
+    else
+      log "[dry-run] Install Homebrew via official script"
+    fi
+    log "[dry-run] brew bundle --file ${brewfile}"
     return
   fi
   if ! xcode-select -p >/dev/null 2>&1; then
     xcode-select --install || true
   fi
-  if ! command -v brew >/dev/null 2>&1; then
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    append_unique_line "$TARGET_HOME/.zshrc" 'eval "$(/opt/homebrew/bin/brew shellenv)"'
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+  if ! detect_brew_bin >/dev/null 2>&1; then
+    install_homebrew
   fi
-  brew bundle --file "$REPO_DIR/Brewfile"
+  local brew_bin
+  if ! brew_bin="$(detect_brew_bin)"; then
+    echo "Homebrew is required but could not be located after installation." >&2
+    exit 1
+  fi
+  eval "$("$brew_bin" shellenv)"
+  ensure_brew_shellenv_line "$brew_bin" "$TARGET_HOME/.zprofile"
+  _brew_preflight "$brew_bin"
+  brew bundle --file "$brewfile"
 }
 
 install_prereqs_debian() {
@@ -217,10 +363,20 @@ install_fonts() {
     return
   fi
   echo "Installing Hack Nerd Font (primary) and Meslo Nerd (secondary fallback)..."
-  if [[ "$(uname)" == "Darwin" ]]; then
-    brew tap homebrew/cask-fonts
-    brew install --cask font-hack-nerd-font
-    brew install --cask font-meslo-lg-nerd-font
+  if [[ "$DETECTED_UNAME" == "Darwin" ]]; then
+    local brew_bin
+    if ! brew_bin="$(detect_brew_bin)"; then
+      echo "Homebrew not available; skipping macOS font install." >&2
+      return
+    fi
+    local font
+    for font in font-hack-nerd-font font-meslo-lg-nerd-font; do
+      if "$brew_bin" list --cask "$font" >/dev/null 2>&1; then
+        echo "Font ${font} already installed (via brew)."
+      else
+        "$brew_bin" install --cask "$font"
+      fi
+    done
   else
     local font_dir="$HOME/.local/share/fonts"
     mkdir -p "$font_dir"
@@ -403,7 +559,11 @@ select_profile() {
     if (( DRY_RUN )); then
       log "[dry-run] Source profile $f and append loader to $HOME/.zshrc.local"
     else
-      source "$f"
+      if (( TEST_MODE_ACTIVE )); then
+        log "[test-mode] Skip sourcing profile $f"
+      else
+        source "$f"
+      fi
       append_unique_line "$HOME/.zshrc.local" "source \"$f\""
     fi
   fi
@@ -417,7 +577,11 @@ apply_host_overrides() {
     if (( DRY_RUN )); then
       log "[dry-run] Source host override $z and append loader to $HOME/.zshrc.local"
     else
-      source "$z"
+      if (( TEST_MODE_ACTIVE )); then
+        log "[test-mode] Skip sourcing host override $z"
+      else
+        source "$z"
+      fi
       append_unique_line "$HOME/.zshrc.local" "source \"$z\""
     fi
   fi
@@ -486,4 +650,6 @@ main() {
   fi
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

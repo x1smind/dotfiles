@@ -45,17 +45,32 @@ export DOTFILES_PROFILE=personal
 Use the Docker harness to exercise the one-shot installer inside disposable Ubuntu and Fedora containers:
 
 ```bash
-make docker-build            # build/update the container images
+make docker-build            # build/update the container images (auto-pulls bases)
 make docker-dry              # run bootstrap --dry-run against a temp $HOME
 make docker-install          # run the real installer against a temp $HOME (backs up bootstrap-created dotfiles before linking)
 make docker-down             # stop containers when finished
 ```
 
+Docker Desktop (or an equivalent daemon) must be running; these targets now fail-fast with a friendly message if the socket is unavailable.
+
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
 The first `make docker-install` run installs extra build dependencies (liblzma, libyaml, etc.) and compiles Python & Ruby, so expect several minutes on a cold container.
 
-GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora.
+GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora. A dedicated macOS runner (`.github/workflows/macos-smoke.yml`) executes the stub harness on PRs targeting `main`/`release/**` and performs a weekly macOS 14 dry-run of `bin/bootstrap`.
+
+### macOS bootstrap checks
+
+Run the macOS bootstrap logic in a Linux/macOS-agnostic way using the stub harness:
+
+```bash
+make test-brew               # simulate macOS bootstrap with stubbed Homebrew
+./test/macos.sh real         # (macOS only) run bin/bootstrap --dry-run against a temp HOME
+```
+
+The stubbed tests assert an idempotent `.zprofile`, validate Homebrew detection for both Intel and Apple Silicon layouts, and block accidental `sudo`/`/etc` mutations when `DOTFILES_TEST_MODE=macos` is set.
+
+The Homebrew bundle now resides in `macos/Brewfile`. During bootstrap a preflight updates Homebrew and automatically untaps the deprecated `homebrew/cask-fonts` tap before running `brew bundle`.
 
 ### Repo layout
 

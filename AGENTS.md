@@ -14,6 +14,19 @@ This repo is **agent-friendly**. The following tasks and prompts are designed fo
 
 ---
 
+## Documentation and Research Policy
+
+Before implementing any code or configuration, the Agent must:
+
+1. Search for the most up-to-date **official documentation** for every referenced tool, package, or command (e.g., brew, docker, gh, asdf, pyenv, poetry).
+2. Prefer canonical sources only (official docs, man pages, maintainer GitHub READMEs). Avoid unverified blogs, mirrors, or community forks.
+3. Summarize key syntax, flag, or behavioral changes since the last known version, calling out deprecations or migrations that could affect compatibility.
+4. Pass the verified implementation details to **Codex** for execution. Codex must encode these validated instructions in code, adding inline comments for notable version differences.
+
+This keeps the repository aligned with the latest stable toolchains and prevents stale or deprecated installation guidance.
+
+---
+
 ## Global context to load
 
 * README.md (this file summarizes scope)

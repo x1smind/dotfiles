@@ -14,13 +14,32 @@ jobs:
     env:
       DOTFILES_PROFILE: personal
     steps:
+      - name: Check Docker availability
+        id: docker_check
+        run: |
+          if docker info >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Docker daemon not available on runner; skipping Docker smoke for ${{ matrix.service }}."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Skip Docker smoke when daemon unavailable
+        if: steps.docker_check.outputs.available == 'false'
+        run: echo "Docker smoke tests skipped because the daemon is unavailable on this runner."
       - uses: actions/checkout@v4
+        if: steps.docker_check.outputs.available == 'true'
+      - name: macOS bootstrap stubs
+        if: steps.docker_check.outputs.available == 'true'
+        run: make test-brew
       - name: Build ${{ matrix.service }} image
+        if: steps.docker_check.outputs.available == 'true'
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-build
       - name: Dry-run bootstrap in ${{ matrix.service }}
+        if: steps.docker_check.outputs.available == 'true'
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-dry
       - name: Install bootstrap in ${{ matrix.service }}
+        if: steps.docker_check.outputs.available == 'true'
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-install
       - name: Tear down ${{ matrix.service }} containers
-        if: always()
+        if: steps.docker_check.outputs.available == 'true' && always()
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-down

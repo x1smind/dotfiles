@@ -72,11 +72,13 @@ bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 Exercise the one-shot installer in disposable Ubuntu and Fedora containers:
 
 ```bash
-make docker-build            # build/update container images
+make docker-build            # build/update container images (base images auto-pull)
 make docker-dry              # bootstrap --dry-run in each distro
 make docker-install          # real install into temp $HOME (backs up conflicts; optional)
 make docker-down             # stop containers when done
 ```
+
+Ensure Docker Desktop (or another Docker daemon) is running first. These targets invoke `docker-ready`, which fails fast with a helpful message if the socket is unavailable.
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
@@ -132,13 +134,16 @@ stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 # 4) Quick smoke test (local environment)
 ./test/smoke.sh dry
 
-# 5) Minimal cross-distro smoke tests (containers if available)
+# 5) macOS bootstrap stubs (no mac required)
+make test-brew
+
+# 6) Minimal cross-distro smoke tests (containers if available)
 make docker-build
 make docker-dry
 # run this when you need to validate the full install path (takes several minutes; backs up conflicts automatically)
 make docker-install
 
-# 6) Neovim health (optional)
+# 7) Neovim health (optional)
 nvim --headless "+Lazy! sync" "+qall" || true
 ```
 
@@ -148,7 +153,7 @@ nvim --headless "+Lazy! sync" "+qall" || true
 
 ## Cross-platform notes
 
-* **macOS**: prefer Homebrew taps; gate logic with `uname` checks.
+* **macOS**: prefer Homebrew taps; gate logic with `uname` checks. Use `macos/Brewfile` and keep `_brew_preflight` removing the deprecated `homebrew/cask-fonts` tap before `brew bundle`.
 * **Debian/Ubuntu**: use `apt-get -y` and `DEBIAN_FRONTEND=noninteractive`.
 * **Fedora/RedHat**: use `dnf -y`; avoid distro-specific flags unless gated.
 * **Fonts**: install to `~/Library/Fonts` (macOS) or `~/.local/share/fonts` (Linux).
