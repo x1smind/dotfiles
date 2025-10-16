@@ -16,5 +16,7 @@ sqlite-devel
 libffi-devel
 neovim
 python3-pip
-python3-venv
+python3-virtualenv
 fontconfig
+xz-devel
+libyaml-devel

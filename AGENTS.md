@@ -205,6 +205,7 @@ Agents should:
   - `test`: smoke or harness updates
 - Push commits directly to `main` unless a PR branch is active
 - When modifying Docker, `bin/bootstrap`, or CI workflows, keep README (“Testing”), CONTRIBUTING (“Commit & PR guidelines” / “Checks”), and this document (“Commit & Push Behavior” / “CI matrix”) synchronized before committing.
+- Surface in docs when real-mode installs back up bootstrap-created dotfiles or introduce long-running language builds (pyenv/rbenv) so contributors know what to expect.
 
 All automated commits must remain within the workspace and never modify user-level configuration files (e.g., `~/.gitconfig`, `/etc/...`).
 
@@ -215,6 +216,7 @@ All automated commits must remain within the workspace and never modify user-lev
 - GitHub Actions runs `Shellcheck` and `Docker Smoke` workflows.  
 - `Docker Smoke` executes `make docker-build`, `make docker-dry`, and `make docker-install` for both `ubuntu` and `fedora` services defined in `docker/docker-compose.yml`.  
 - Keep Makefile targets in sync with the workflow, and update README/CONTRIBUTING guidance if the matrix changes.
+- Allow for longer runtimes in CI (`make docker-install` pulls toolchain deps and compiles Python/Ruby); avoid adding extra blocking steps without updating the matrix notes.
 
 ---
 

@@ -47,11 +47,13 @@ Use the Docker harness to exercise the one-shot installer inside disposable Ubun
 ```bash
 make docker-build            # build/update the container images
 make docker-dry              # run bootstrap --dry-run against a temp $HOME
-make docker-install          # run the real installer against a temp $HOME
+make docker-install          # run the real installer against a temp $HOME (backs up bootstrap-created dotfiles before linking)
 make docker-down             # stop containers when finished
 ```
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
+The first `make docker-install` run installs extra build dependencies (liblzma, libyaml, etc.) and compiles Python & Ruby, so expect several minutes on a cold container.
 
 GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora.
 

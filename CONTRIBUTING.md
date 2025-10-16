@@ -74,11 +74,13 @@ Exercise the one-shot installer in disposable Ubuntu and Fedora containers:
 ```bash
 make docker-build            # build/update container images
 make docker-dry              # bootstrap --dry-run in each distro
-make docker-install          # real install into temp $HOME (optional)
+make docker-install          # real install into temp $HOME (backs up conflicts; optional)
 make docker-down             # stop containers when done
 ```
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
+Real-mode installs will back up any bootstrap-created dotfiles (e.g., Oh My Zsh templates) before linking and install extra build dependencies (liblzma, libyaml, etc.) so that pyenv/rbenv can compile toolchains; expect several minutes on the first run in a fresh container.
 
 ---
 
@@ -133,7 +135,7 @@ stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 # 5) Minimal cross-distro smoke tests (containers if available)
 make docker-build
 make docker-dry
-# run this when you need to validate the full install path
+# run this when you need to validate the full install path (takes several minutes; backs up conflicts automatically)
 make docker-install
 
 # 6) Neovim health (optional)

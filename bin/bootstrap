@@ -83,6 +83,38 @@ ensure_dir() {
   mkdir -p "$1"
 }
 
+trim_leading_whitespace() {
+  local str="$1"
+  str="${str#"${str%%[![:space:]]*}"}"
+  printf '%s' "$str"
+}
+
+backup_conflict_path() {
+  local target="$1"
+  if [[ ! -e "$target" && ! -L "$target" ]]; then
+    return
+  fi
+  local suffix=0
+  local backup
+  while :; do
+    backup="${target}.bootstrap-backup"
+    if (( suffix > 0 )); then
+      backup="${backup}.${suffix}"
+    fi
+    if [[ ! -e "$backup" && ! -L "$backup" ]]; then
+      break
+    fi
+    ((suffix++))
+  done
+  if (( DRY_RUN )); then
+    log "[dry-run] move ${target} -> ${backup} (pre-stow backup)"
+    return
+  fi
+  log "Backing up ${target} -> ${backup} (pre-stow)"
+  mkdir -p "$(dirname "$backup")"
+  mv "$target" "$backup"
+}
+
 detect_os() {
   if [[ "$(uname)" == "Darwin" ]]; then
     echo "macos"
@@ -314,7 +346,42 @@ stow_dotfiles() {
       log "[dry-run] stow -n --target \"$HOME\" \"$pkg\""
       stow -n --target "$HOME" "$pkg"
     else
-      stow --target "$HOME" -R "$pkg"
+      local stow_output
+      if stow_output="$(stow -n --target "$HOME" "$pkg" 2>&1)"; then
+        stow --target "$HOME" -R "$pkg"
+      else
+        local cleaned=0
+        while IFS= read -r line; do
+          if [[ "$line" == *"existing target is not a link:"* || "$line" == *"existing target is neither a link nor a directory:"* ]]; then
+            cleaned=1
+            local target="${line##*: }"
+            target="$(trim_leading_whitespace "$target")"
+            target="${target#./}"
+            if [[ "$target" != /* ]]; then
+              target="$HOME/$target"
+            fi
+            backup_conflict_path "$target"
+          elif [[ "$line" == *"cannot stow"* && "$line" == *"over existing target"* ]]; then
+            cleaned=1
+            local target_part="${line#*over existing target }"
+            target_part="${target_part%% since*}"
+            local target="$(trim_leading_whitespace "$target_part")"
+            target="${target#./}"
+            if [[ "$target" != /* ]]; then
+              target="$HOME/$target"
+            fi
+            backup_conflict_path "$target"
+          else
+            printf '%s\n' "$line" >&2
+          fi
+        done <<< "$stow_output"
+        if (( cleaned )); then
+          stow --target "$HOME" -R "$pkg"
+        else
+          printf '%s\n' "$stow_output" >&2
+          exit 1
+        fi
+      fi
     fi
   done
   popd >/dev/null
