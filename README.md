@@ -53,6 +53,8 @@ make docker-down             # stop containers when finished
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
+GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora.
+
 ### Repo layout
 
 ```

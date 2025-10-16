@@ -106,6 +106,7 @@ Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
   Always state where you tested (`macOS`, `Ubuntu`, `Fedora`, etc.).  
 
 * **Add/Update tests** in `test/` for new logic or flags.  
+* **CI awareness**: GitHub Actions runs Shellcheck and the Docker Smoke matrix (`ubuntu`, `fedora`). Verify `./test/smoke.sh dry` and `make docker-dry`/`make docker-install` locally before opening a PR.
 
 * **Note:** Agents auto-generate these commit messages when changes are staged.
   Human contributors should follow the same convention when committing manually.
@@ -126,13 +127,16 @@ bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 # 3) Stow simulation
 stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 
-# 4) Minimal cross-distro smoke tests (containers if available)
+# 4) Quick smoke test (local environment)
+./test/smoke.sh dry
+
+# 5) Minimal cross-distro smoke tests (containers if available)
 make docker-build
 make docker-dry
 # run this when you need to validate the full install path
 make docker-install
 
-# 5) Neovim health (optional)
+# 6) Neovim health (optional)
 nvim --headless "+Lazy! sync" "+qall" || true
 ```
 

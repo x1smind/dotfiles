@@ -1,0 +1,26 @@
+name: Docker Smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ubuntu, fedora]
+    env:
+      DOTFILES_PROFILE: personal
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.service }} image
+        run: make DOCKER_SERVICES=${{ matrix.service }} docker-build
+      - name: Dry-run bootstrap in ${{ matrix.service }}
+        run: make DOCKER_SERVICES=${{ matrix.service }} docker-dry
+      - name: Install bootstrap in ${{ matrix.service }}
+        run: make DOCKER_SERVICES=${{ matrix.service }} docker-install
+      - name: Tear down ${{ matrix.service }} containers
+        if: always()
+        run: make DOCKER_SERVICES=${{ matrix.service }} docker-down

@@ -17,3 +17,4 @@ libffi-dev
 neovim
 python3-pip
 python3-venv
+fontconfig

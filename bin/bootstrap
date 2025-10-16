@@ -9,6 +9,7 @@ REPO_DIR="${REPO_DIR:-$REPO_DEFAULT}"
 STOW_PKGS=("git" "zsh" "tmux" "nvim" "vim")
 TARGET_HOME="${DOTFILES_TARGET:-$REAL_HOME}"
 DRY_RUN=0
+REQUIRED_COMMANDS=("hostname")
 
 usage() {
   cat <<'EOF'
@@ -46,6 +47,21 @@ while [[ $# -gt 0 ]]; do
 done
 
 log() { printf '>> %s\n' "$*"; }
+
+sanity_checks() {
+  local missing=()
+  local cmd
+  for cmd in "${REQUIRED_COMMANDS[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+  if ((${#missing[@]})); then
+    printf 'Missing required command(s): %s\n' "${missing[*]}" >&2
+    printf 'Install the missing command(s) and re-run bootstrap.\n' >&2
+    exit 1
+  fi
+}
 
 append_unique_line() {
   local file="$1"
@@ -365,6 +381,8 @@ main() {
     fedora) install_prereqs_fedora ;;
     *) echo "Unsupported OS: $OS" >&2; exit 1 ;;
   esac
+
+  sanity_checks
 
   local previous_home="$HOME"
   export HOME="$TARGET_HOME"

@@ -7,6 +7,7 @@ RUN dnf -y upgrade --refresh \
     curl \
     git \
     gnupg2 \
+    hostname \
     make \
     stow \
     sudo \

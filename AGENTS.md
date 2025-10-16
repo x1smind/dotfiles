@@ -204,8 +204,17 @@ Agents should:
   - `chore`: dependency or housekeeping change
   - `test`: smoke or harness updates
 - Push commits directly to `main` unless a PR branch is active
+- When modifying Docker, `bin/bootstrap`, or CI workflows, keep README (“Testing”), CONTRIBUTING (“Commit & PR guidelines” / “Checks”), and this document (“Commit & Push Behavior” / “CI matrix”) synchronized before committing.
 
 All automated commits must remain within the workspace and never modify user-level configuration files (e.g., `~/.gitconfig`, `/etc/...`).
+
+---
+
+## CI matrix
+
+- GitHub Actions runs `Shellcheck` and `Docker Smoke` workflows.  
+- `Docker Smoke` executes `make docker-build`, `make docker-dry`, and `make docker-install` for both `ubuntu` and `fedora` services defined in `docker/docker-compose.yml`.  
+- Keep Makefile targets in sync with the workflow, and update README/CONTRIBUTING guidance if the matrix changes.
 
 ---
 
