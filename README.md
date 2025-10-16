@@ -68,24 +68,6 @@ make test-brew               # simulate macOS bootstrap with stubbed Homebrew
 ./test/macos.sh real         # (macOS only) run bin/bootstrap --dry-run against a temp HOME
 ```
 
-### 🔄 Migration Note (Oct 2025)
-The top-level `Brewfile` has been moved to `macos/Brewfile`.
-
-**What to do:**
-1. Update any local scripts or aliases to:
-   ```bash
-   brew bundle --file=macos/Brewfile
-   ```
-2. Remove any stale lockfile:
-   ```bash
-   rm -f Brewfile.lock.json
-   ```
-3. If using Make targets (`make brew` or `make bootstrap`), no action needed — they already reference `macos/Brewfile`.
-
-The stubbed tests assert an idempotent `.zprofile`, validate Homebrew detection for both Intel and Apple Silicon layouts, and block accidental `sudo`/`/etc` mutations when `DOTFILES_TEST_MODE=macos` is set.
-
-The Homebrew bundle now resides in `macos/Brewfile`. During bootstrap a preflight updates Homebrew and automatically untaps the deprecated `homebrew/cask-fonts` tap before running `brew bundle`.
-
 ### Repo layout
 
 ```
@@ -105,8 +87,26 @@ Select with `DOTFILES_PROFILE` env var or interactive prompt on first run:
 
 Put extra snippets under `hosts/$(hostname)/` and they will be sourced automatically.
 
-## Migration note (2025-10-07)
+## Migration notes
 
-- All stowable configs now live under `packages/*`. Update any local automation to call `stow -d packages`.
-- `bin/bootstrap` gained `--dry-run`, `--target`, and `--profile` flags; update scripts and CI jobs accordingly.
-- Use `test/smoke.sh` to validate stow link plans against a disposable `$DOTFILES_TARGET`.
+### 2025-10-07
+
+* All stowable configs now live under `packages/*`.
+  Update automation to call `stow -d packages`.
+* `bin/bootstrap` gained `--dry-run`, `--target`, and `--profile` flags; update scripts and CI jobs accordingly.
+* Use `test/smoke.sh` to validate stow link plans against a disposable `$DOTFILES_TARGET`.
+
+### 2025-10-16
+
+* The top-level `Brewfile` has been moved to `macos/Brewfile`.
+* Update any local scripts or aliases to:
+
+  ```bash
+  brew bundle --file=macos/Brewfile
+  ```
+* Remove any stale lockfile:
+
+  ```bash
+  rm -f Brewfile.lock.json
+  ```
+* If using Make targets (`make brew` or `make bootstrap`), no action is needed — they already reference `macos/Brewfile`.
