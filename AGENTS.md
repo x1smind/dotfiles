@@ -192,6 +192,23 @@ Place these in `test/` (agents can call them):
 
 ---
 
+## Commit & Push Behavior
+
+Agents should:
+- Auto-stage relevant file changes.
+- Generate concise **Conventional Commit** message using the diff context.
+- Prefer the following prefixes based on detected change type:
+  - `feat`: new feature or workflow
+  - `fix`: bug or path correction
+  - `docs`: README / CONTRIBUTING / AGENTS edits
+  - `chore`: dependency or housekeeping change
+  - `test`: smoke or harness updates
+- Push commits directly to `main` unless a PR branch is active
+
+All automated commits must remain within the workspace and never modify user-level configuration files (e.g., `~/.gitconfig`, `/etc/...`).
+
+---
+
 ## Known non-goals
 
 * Managing system-wide packages or services.

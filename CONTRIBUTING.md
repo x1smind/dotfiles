@@ -84,11 +84,31 @@ Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
 ## Commit & PR guidelines
 
-* **Branch naming**: `feat/<area>-<topic>`, `fix/<area>-<topic>`, `chore/…`
-* **Conventional commits** (recommended): `feat(zsh): add autosuggestions`
-* **One concern per PR**; keep diffs readable.
-* **Describe OS coverage**: where you tested (macOS, Ubuntu, Fedora).
-* **Add/Update tests** in `test/` for new logic or flags.
+* **Branch naming**:  
+  Use one of the following prefixes:  
+  - `feat/<area>-<topic>` – new features or enhancements  
+  - `fix/<area>-<topic>` – bug fixes or regressions  
+  - `chore/<area>-<topic>` – refactors, CI, tooling, or maintenance tasks  
+  - `docs/<area>-<topic>` – documentation-only changes  
+  - `test/<area>-<topic>` – new or updated tests  
+  - `refactor/<area>-<topic>` – structural changes without behavior changes  
+
+* **Conventional commits** (recommended):  
+  - `feat(zsh): add autosuggestions`  
+  - `fix(fedora): install hostname package`  
+  - `docs(agents|contributors): commit message convention`  
+  - `chore(ci): extend matrix for Ubuntu + Fedora`  
+  - `refactor(bootstrap): extract sanity check for missing commands`
+
+* **One concern per PR**; keep diffs small and readable.  
+
+* **Describe OS coverage**:  
+  Always state where you tested (`macOS`, `Ubuntu`, `Fedora`, etc.).  
+
+* **Add/Update tests** in `test/` for new logic or flags.  
+
+* **Note:** Agents auto-generate these commit messages when changes are staged.
+  Human contributors should follow the same convention when committing manually.
 
 ---
 
