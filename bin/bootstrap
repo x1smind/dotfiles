@@ -33,7 +33,7 @@ if [[ -n "$SCRIPT_DIR" ]]; then
 fi
 
 REPO_DIR="${REPO_DIR:-$REPO_DEFAULT}"
-STOW_PKGS=("git" "zsh" "tmux" "nvim" "vim")
+STOW_PKGS=()
 TARGET_HOME="${DOTFILES_TARGET:-$REAL_HOME}"
 DRY_RUN=0
 REQUIRED_COMMANDS=("hostname")
@@ -93,6 +93,21 @@ done
 feature_enabled() {
   local name="$1"
   [[ -n "${DOTFILES_FEATURE_MAP[$name]:-}" ]]
+}
+
+discover_stow_packages() {
+  local pkg_root="$REPO_DIR/packages"
+  STOW_PKGS=()
+  if [[ ! -d "$pkg_root" ]]; then
+    log "No packages directory at ${pkg_root}; skipping stow."
+    return
+  fi
+  while IFS= read -r pkg; do
+    [[ -n "$pkg" ]] && STOW_PKGS+=("$pkg")
+  done < <(find "$pkg_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | LC_ALL=C sort -u)
+  if ((${#STOW_PKGS[@]} == 0)); then
+    log "No stow packages discovered under ${pkg_root}; skipping stow."
+  fi
 }
 
 assert_safe_path() {
@@ -543,6 +558,9 @@ ensure_stow() {
 }
 
 stow_dotfiles() {
+  if ((${#STOW_PKGS[@]} == 0)); then
+    return
+  fi
   ensure_dir "$HOME"
   if ! command -v stow >/dev/null 2>&1; then
     if (( DRY_RUN )); then
@@ -701,8 +719,11 @@ main() {
   install_ohmyzsh
   install_powerlevel10k
   install_fonts
-  ensure_stow "$OS"
-  stow_dotfiles
+  discover_stow_packages
+  if ((${#STOW_PKGS[@]} > 0)); then
+    ensure_stow "$OS"
+    stow_dotfiles
+  fi
   install_tpm
   if feature_enabled "nvm"; then
     install_nvm
