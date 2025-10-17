@@ -1,5 +1,5 @@
 DOCKER ?= $(shell command -v docker 2>/dev/null || echo /usr/local/bin/docker)
-DOCKER_COMPOSE ?= $(DOCKER) compose
+DOCKER_COMPOSE ?= $(strip $(shell if $(DOCKER) compose version >/dev/null 2>&1; then echo "$(DOCKER) compose"; elif command -v docker-compose >/dev/null 2>&1; then command -v docker-compose; fi))
 COMPOSE_FILE := docker/docker-compose.yml
 DOCKER_SERVICES := ubuntu fedora
 
@@ -20,6 +20,10 @@ docker-ready:
 		echo "❌ Docker not running or socket not accessible. Start Docker Desktop and retry." >&2; \
 		exit 1; \
 	}
+	@if [ -z "$(DOCKER_COMPOSE)" ]; then \
+		echo "❌ Docker Compose CLI not available. Install the docker compose plugin or docker-compose binary."; \
+		exit 1; \
+	fi
 
 docker-build: docker-ready
 	@echo ">> Building Docker images ($(DOCKER_SERVICES))"

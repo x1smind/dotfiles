@@ -8,6 +8,8 @@ x-default-service: &default-service
   volumes:
     - ..:/workspace
 
+name: dotfiles
+
 services:
   ubuntu:
     <<: *default-service
