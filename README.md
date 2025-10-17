@@ -83,6 +83,21 @@ Select with `DOTFILES_PROFILE` env var or interactive prompt on first run:
 - `work`
 - `personal`
 
+## Feature toggles
+
+Control optional installers with the `DOTFILES_FEATURES` environment variable (comma-separated).  
+Default: `core,nvm,pyenv,rbenv`.
+
+Examples:
+
+```bash
+# Skip language runtimes when testing in containers
+DOTFILES_FEATURES=core bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+
+# Only install nvm alongside the core dotfiles
+DOTFILES_FEATURES=core,nvm bin/bootstrap --target "$HOME"
+```
+
 ## Host overrides
 
 Put extra snippets under `hosts/$(hostname)/` and they will be sourced automatically.

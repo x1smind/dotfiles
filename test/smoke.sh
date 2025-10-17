@@ -46,6 +46,14 @@ if [[ "$MODE" == "dry" ]]; then
   DOTFILES_TARGET="${DOTFILES_TARGET}" \
   REPO_DIR="${REPO_DIR}" \
     bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" < "${REPO_DIR}/bin/bootstrap"
+
+  echo ">> Running minimal feature bootstrap (DOTFILES_FEATURES=core)"
+  core_target="$(mktemp -d)"
+  DOTFILES_FEATURES=core \
+  DOTFILES_TARGET="${core_target}" \
+  DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
+    "${REPO_DIR}/bin/bootstrap" --dry-run --target "${core_target}" --profile "${DOTFILES_PROFILE}"
+  rm -rf "${core_target}"
 fi
 
 if ! command -v stow >/dev/null 2>&1; then

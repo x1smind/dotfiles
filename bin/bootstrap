@@ -75,6 +75,26 @@ done
 
 log() { printf '>> %s\n' "$*"; }
 
+FEATURE_SPEC="${DOTFILES_FEATURES:-core,nvm,pyenv,rbenv}"
+FEATURE_SPEC="${FEATURE_SPEC//[[:space:]]/}"
+if [[ "$FEATURE_SPEC" == "all" ]]; then
+  FEATURE_SPEC="core,nvm,pyenv,rbenv"
+fi
+if [[ -z "$FEATURE_SPEC" ]]; then
+  FEATURE_SPEC="core"
+fi
+IFS=',' read -r -a DOTFILES_FEATURE_LIST <<< "$FEATURE_SPEC"
+declare -A DOTFILES_FEATURE_MAP=()
+for feature in "${DOTFILES_FEATURE_LIST[@]}"; do
+  [[ -n "$feature" ]] || continue
+  DOTFILES_FEATURE_MAP["$feature"]=1
+done
+
+feature_enabled() {
+  local name="$1"
+  [[ -n "${DOTFILES_FEATURE_MAP[$name]:-}" ]]
+}
+
 assert_safe_path() {
   local path="$1"
   if (( TEST_MODE_ACTIVE )) && [[ "$TEST_OS" == "macos" ]]; then
@@ -648,11 +668,24 @@ main() {
   ensure_stow "$OS"
   stow_dotfiles
   install_tpm
-  install_nvm
-  install_pyenv
-  install_rbenv
+  if feature_enabled "nvm"; then
+    install_nvm
+  else
+    log "Skipping nvm install (feature disabled)"
+  fi
+  if feature_enabled "pyenv"; then
+    install_pyenv
+  else
+    log "Skipping pyenv install (feature disabled)"
+  fi
+  if feature_enabled "rbenv"; then
+    install_rbenv
+  else
+    log "Skipping rbenv install (feature disabled)"
+  fi
   select_profile
   apply_host_overrides
+  log "Enabled features: ${FEATURE_SPEC}"
 
   switch_default_shell
 

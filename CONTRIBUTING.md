@@ -28,6 +28,7 @@ Cross-platform dotfiles + bootstrap for macOS and Linux (Debian/Ubuntu family | 
 * **Idempotent bootstrap**: running `bin/bootstrap` multiple times is safe.
 * **No surprise writes**: support `--dry-run`, `DOTFILES_TARGET`, and temp homes.
 * **Small modules**: per-tool subdirs, minimal cross-talk.
+* **Feature gates**: optional installers toggle via `DOTFILES_FEATURES` (e.g., skip language runtimes in CI).
 * **Degradations > failures**: if a tool isn’t available, skip gracefully.
 
 ---
@@ -131,6 +132,9 @@ command -v shfmt >/dev/null && shfmt -d . || true
 # 2) Bootstrap dry-run into temp HOME
 export DOTFILES_TARGET="$(mktemp -d)"
 bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+
+# 2b) Minimal feature dry-run (skip heavy runtimes)
+DOTFILES_FEATURES=core bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 
 # 3) Stow simulation
 stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
