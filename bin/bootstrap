@@ -595,6 +595,30 @@ apply_host_overrides() {
   fi
 }
 
+switch_default_shell() {
+  local zsh_path
+  if ! zsh_path="$(command -v zsh 2>/dev/null)"; then
+    log "zsh not found; skipping default shell update"
+    return
+  fi
+
+  if [[ "$SHELL" == "$zsh_path" ]]; then
+    return
+  fi
+
+  if (( DRY_RUN )); then
+    log "[dry-run] chsh -s ${zsh_path}"
+    log "[dry-run] After changing shells, run 'exec zsh' or reopen your terminal."
+    return
+  fi
+
+  if chsh -s "$zsh_path"; then
+    log "Default shell updated to ${zsh_path}. Run 'exec zsh' or open a new terminal to start using it."
+  else
+    log "Unable to change default shell automatically. Run 'chsh -s ${zsh_path}' manually or 'exec ${zsh_path}' for this session."
+  fi
+}
+
 main() {
   if [[ ! -d "$REPO_DIR/.git" ]]; then
     if (( DRY_RUN )); then
@@ -630,20 +654,14 @@ main() {
   select_profile
   apply_host_overrides
 
-  if [[ "$SHELL" != *zsh ]]; then
-    if (( DRY_RUN )); then
-      log "[dry-run] chsh -s $(command -v zsh)"
-    else
-      chsh -s "$(command -v zsh)" || true
-    fi
-  fi
+  switch_default_shell
 
   export HOME="$previous_home"
 
   if (( DRY_RUN )); then
     printf "\n✅ Dry run complete. No changes were made.\n"
   else
-    printf "\n✅ Done. Open a new terminal.\n"
+    printf "\n✅ Done. Run 'exec zsh' or open a new terminal to load the new shell.\n"
     echo "Set your terminal font to 'Hack Nerd Font' (primary) or 'MesloLGS Nerd Font' (fallback)."
     echo "Run 'tmux' then prefix + I to install tmux plugins."
     echo "Optionally run: ~/.dotfiles/bin/keys-setup"
