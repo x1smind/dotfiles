@@ -19,9 +19,19 @@ DETECTED_UNAME="${DOTFILES_FAKE_UNAME:-$(uname)}"
 DETECTED_ARCH="${DOTFILES_FAKE_ARCH:-$(uname -m)}"
 
 REAL_HOME="${HOME}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DEFAULT="${SCRIPT_DIR}/.."
-[[ -d "$REPO_DEFAULT/.git" ]] || REPO_DEFAULT="$REAL_HOME/.dotfiles"
+SCRIPT_DIR=""
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+REPO_DEFAULT="${REAL_HOME}/.dotfiles"
+if [[ -n "$SCRIPT_DIR" ]]; then
+  candidate="$(cd "${SCRIPT_DIR}/.." && pwd)"
+  if [[ -d "$candidate/.git" ]]; then
+    REPO_DEFAULT="$candidate"
+  fi
+fi
+
 REPO_DIR="${REPO_DIR:-$REPO_DEFAULT}"
 STOW_PKGS=("git" "zsh" "tmux" "nvim" "vim")
 TARGET_HOME="${DOTFILES_TARGET:-$REAL_HOME}"
@@ -650,6 +660,6 @@ main() {
   fi
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+if [[ -z "${BASH_SOURCE[0]:-}" || "${BASH_SOURCE[0]}" == "$0" ]]; then
   main "$@"
 fi

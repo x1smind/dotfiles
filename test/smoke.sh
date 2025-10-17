@@ -40,6 +40,14 @@ fi
 echo ">> Running ${bootstrap_cmd[*]}"
 "${bootstrap_cmd[@]}"
 
+if [[ "$MODE" == "dry" ]]; then
+  echo ">> Running stdin bootstrap simulation"
+  DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
+  DOTFILES_TARGET="${DOTFILES_TARGET}" \
+  REPO_DIR="${REPO_DIR}" \
+    bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" < "${REPO_DIR}/bin/bootstrap"
+fi
+
 if ! command -v stow >/dev/null 2>&1; then
   echo ">> stow not found; skipping link plan"
   exit 0
