@@ -1,0 +1,80 @@
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG TARGETARCH
+ARG DEV_USER=dev
+ARG DEV_HOME=/home/${DEV_USER}
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin \
+    DEV_USER=${DEV_USER} \
+    DEV_HOME=${DEV_HOME}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Core packages first so that we can add repositories securely.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      git \
+      gnupg \
+      make \
+      ripgrep \
+      openssh-client \
+      python3 \
+      stow \
+      sudo \
+      unzip \
+      xz-utils \
+      zsh \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI (official instructions).
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+ && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      | tee /etc/apt/sources.list.d/github-cli.list >/dev/null \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI (official repository) so the container can talk to host Docker.
+RUN install -m 0755 -d /etc/apt/keyrings \
+ && curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+      | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+ && chmod a+r /etc/apt/keyrings/docker.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" \
+      | tee /etc/apt/sources.list.d/docker.list >/dev/null \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends docker-ce-cli \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install Codex CLI (npm package).
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && npm install -g @openai/codex@0.46.0 \
+ && npm cache clean --force \
+ && rm -rf /var/lib/apt/lists/*
+
+# Lightweight privilege drop helper.
+RUN curl -fsSL https://github.com/tianon/gosu/releases/download/1.17/gosu-$(dpkg --print-architecture) \
+      -o /usr/local/bin/gosu \
+ && chmod +x /usr/local/bin/gosu \
+ && gosu --version >/dev/null
+
+# Default non-root user (UID/GID may be rewritten at runtime by entrypoint).
+RUN groupadd --non-unique --gid 1000 "${DEV_USER}" \
+ && useradd --non-unique --uid 1000 --gid "${DEV_USER}" --create-home --shell /bin/bash "${DEV_USER}" \
+ && echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/99-dev-user \
+ && chmod 0440 /etc/sudoers.d/99-dev-user
+
+COPY docker/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]
+CMD ["/bin/bash", "-l"]

@@ -12,7 +12,7 @@ define RUN_SMOKE
 		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)'
 endef
 
-.PHONY: docker-ready docker-build docker-smoke docker-smoke-% docker-dry docker-dry-% docker-install docker-install-% docker-shell-% docker-down docker-clean test-brew
+.PHONY: docker-ready docker-build docker-smoke docker-smoke-% docker-dry docker-dry-% docker-install docker-install-% docker-shell-% docker-dev-shell docker-down docker-clean test-brew
 
 docker-ready:
 	@unset DOCKER_HOST; $(DOCKER) context use default >/dev/null 2>&1 || true
@@ -47,6 +47,49 @@ docker-shell-%: docker-ready
 		-e DOTFILES_TARGET \
 		-w /workspace \
 		$* bash -l
+
+docker-dev-shell: docker-ready
+	@echo ">> Launching developer container shell"
+	@HOST_UID="$$(id -u)" \
+	 HOST_GID="$$(id -g)" \
+	 HOST_HOME="$$HOME" \
+	 SSH_AUTH_SOCK="$${SSH_AUTH_SOCK:-}" \
+	 DOCKER_COMPOSE="$(DOCKER_COMPOSE)" \
+	 COMPOSE_FILE="$(COMPOSE_FILE)" \
+	 DOTFILES_PROFILE="$${DOTFILES_PROFILE:-}" \
+	 DOTFILES_TARGET="$${DOTFILES_TARGET:-}" \
+	 bash -c 'set -euo pipefail; \
+declare -a volumes=(); \
+if [ -f "$$HOST_HOME/.gitconfig" ]; then \
+  volumes+=("--volume" "$$HOST_HOME/.gitconfig:/host-home/.gitconfig:ro"); \
+fi; \
+if [ -d "$$HOST_HOME/.config/git" ]; then \
+  volumes+=("--volume" "$$HOST_HOME/.config/git:/host-home/.config/git:ro"); \
+fi; \
+if [ -d "$$HOST_HOME/.config/gh" ]; then \
+  volumes+=("--volume" "$$HOST_HOME/.config/gh:/host-home/.config/gh:rw"); \
+fi; \
+if [ -d "$$HOST_HOME/.codex" ]; then \
+  volumes+=("--volume" "$$HOST_HOME/.codex:/host-home/.codex:rw"); \
+fi; \
+if [ -d "$$HOST_HOME/.ssh" ]; then \
+  volumes+=("--volume" "$$HOST_HOME/.ssh:/host-home/.ssh:ro"); \
+fi; \
+ssh_sock=""; \
+if [ -S "$$SSH_AUTH_SOCK" ]; then \
+  ssh_sock="$$SSH_AUTH_SOCK"; \
+  volumes+=("--volume" "$$SSH_AUTH_SOCK:/ssh-agent:ro"); \
+fi; \
+HOST_UID=$$HOST_UID HOST_GID=$$HOST_GID SSH_AUTH_SOCK=$$ssh_sock \
+DOTFILES_PROFILE=$$DOTFILES_PROFILE DOTFILES_TARGET=$$DOTFILES_TARGET \
+$$DOCKER_COMPOSE -f $$COMPOSE_FILE run --rm \
+  -e DOTFILES_PROFILE \
+  -e DOTFILES_TARGET \
+  -e HOST_UID \
+  -e HOST_GID \
+  -e SSH_AUTH_SOCK \
+  "$${volumes[@]}" \
+  dev'
 
 docker-down: docker-ready
 	@echo ">> Stopping and removing containers"

@@ -84,6 +84,10 @@ Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
 Real-mode installs will back up any bootstrap-created dotfiles (e.g., Oh My Zsh templates) before linking and install extra build dependencies (liblzma, libyaml, etc.) so that pyenv/rbenv can compile toolchains; expect several minutes on the first run in a fresh container.
 
+Need an interactive Linux shell that mirrors CI? Use `make docker-dev-shell`. Docker caches this image, so rebuild it after changing `docker/Dockerfile.dev` or `docker/dev-entrypoint.sh` with `docker compose -f docker/docker-compose.yml build --no-cache dev`. (The `make docker-build` target only touches the Ubuntu/Fedora smoke images.) GitHub and Codex configs are mounted read/write so you can refresh tokens inside the container—those updates persist back to the host.
+
+> macOS note: if `gh auth status` reports an invalid token, re-auth inside the container with `gh auth login --web`. macOS stores the host token in the keychain, which isn’t readable inside Linux.
+
 ---
 
 ## Commit & PR guidelines

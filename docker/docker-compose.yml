@@ -22,3 +22,22 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.fedora
     command: sleep infinity
+
+  dev:
+    <<: *default-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    entrypoint:
+      - /usr/local/bin/dev-entrypoint.sh
+    command:
+      - /bin/bash
+      - -l
+    environment:
+      <<: *default-env
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      SSH_AUTH_SOCK: ${SSH_AUTH_SOCK:-}
+    volumes:
+      - ..:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock

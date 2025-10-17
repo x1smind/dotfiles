@@ -191,6 +191,8 @@ Place these in `test/` (agents can call them):
   * `./test/smoke.sh dry` → wraps `bin/bootstrap --dry-run --target "$DOTFILES_TARGET"` and a full `stow -n` plan.
   * `./test/smoke.sh real` → runs the installer end-to-end against a temp `$HOME`.
   * Use `make docker-dry` / `make docker-install` to run these flows inside Ubuntu and Fedora containers (working dir `/workspace`, profile via `DOTFILES_PROFILE`).
+  * `make docker-dev-shell` opens an interactive Linux workspace. Docker reuses this image; rebuild it after editing `docker/Dockerfile.dev` or `docker/dev-entrypoint.sh` with `docker compose -f docker/docker-compose.yml build --no-cache dev` (the standard `make docker-build` only rebuilds the Ubuntu/Fedora smoke images). GitHub/Codex configs are mounted read/write so refreshed tokens persist to the host.
+  * macOS hosts: `gh` logins tied to the Keychain appear “invalid” in the container; run `gh auth login --web` once and approve the device code to populate `~/.config/gh/hosts.yml`.
 * `test/nvim.sh` (optional)
 
   * Headless plugin sync and health checks (skip if `nvim` missing).
