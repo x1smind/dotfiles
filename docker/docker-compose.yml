@@ -6,7 +6,7 @@ x-default-service: &default-service
   working_dir: /workspace
   environment: *default-env
   volumes:
-    - ..:/workspace
+    - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
 
 name: dotfiles
 
@@ -41,5 +41,5 @@ services:
       HOST_GID: ${HOST_GID:-1000}
       SSH_AUTH_SOCK: ${SSH_AUTH_SOCK:-}
     volumes:
-      - ..:/workspace
+      - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock

@@ -9,10 +9,11 @@ define RUN_SMOKE
 		-w /workspace \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \
+		-e DOTFILES_HOST_WORKSPACE \
 		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)'
 endef
 
-.PHONY: docker-ready docker-build docker-smoke docker-smoke-% docker-dry docker-dry-% docker-install docker-install-% docker-shell-% docker-dev-shell docker-down docker-clean test-brew
+.PHONY: docker-ready docker-build docker-smoke docker-smoke-% docker-dry docker-dry-% docker-install docker-install-% docker-shell-% docker-dev-shell docker-dev-shell-rebuild docker-dev-shell-internal docker-down docker-clean test-brew
 
 docker-ready:
 	@unset DOCKER_HOST; $(DOCKER) context use default >/dev/null 2>&1 || true
@@ -53,15 +54,23 @@ docker-shell-%: docker-ready
 		$* bash -l
 
 docker-dev-shell: docker-ready
+	@$(MAKE) docker-dev-shell-internal RUN_REBUILD=0
+
+docker-dev-shell-rebuild: docker-ready
+	@$(MAKE) docker-dev-shell-internal RUN_REBUILD=1
+
+docker-dev-shell-internal:
 	@echo ">> Launching developer container shell"
 	@HOST_UID="$$(id -u)" \
 	 HOST_GID="$$(id -g)" \
 	 HOST_HOME="$$HOME" \
+	 HOST_WORKSPACE="$$(pwd)" \
 	 SSH_AUTH_SOCK="$${SSH_AUTH_SOCK:-}" \
 	 DOCKER_COMPOSE="$(DOCKER_COMPOSE)" \
 	 COMPOSE_FILE="$(COMPOSE_FILE)" \
 	 DOTFILES_PROFILE="$${DOTFILES_PROFILE:-}" \
 	 DOTFILES_TARGET="$${DOTFILES_TARGET:-}" \
+	 RUN_REBUILD="$(RUN_REBUILD)" \
 	 bash -c 'set -euo pipefail; \
 declare -a volumes=(); \
 if [ -f "$$HOST_HOME/.gitconfig" ]; then \
@@ -84,11 +93,17 @@ if [ -S "$$SSH_AUTH_SOCK" ]; then \
   ssh_sock="$$SSH_AUTH_SOCK"; \
   volumes+=("--volume" "$$SSH_AUTH_SOCK:/ssh-agent:ro"); \
 fi; \
+if [ "$$RUN_REBUILD" = "1" ]; then \
+  echo ">> Rebuilding dev image (no cache)"; \
+  $$DOCKER_COMPOSE -f $$COMPOSE_FILE build --pull --no-cache dev; \
+fi; \
 HOST_UID=$$HOST_UID HOST_GID=$$HOST_GID SSH_AUTH_SOCK=$$ssh_sock \
 DOTFILES_PROFILE=$$DOTFILES_PROFILE DOTFILES_TARGET=$$DOTFILES_TARGET \
+DOTFILES_HOST_WORKSPACE=$$HOST_WORKSPACE \
 $$DOCKER_COMPOSE -f $$COMPOSE_FILE run --rm \
   -e DOTFILES_PROFILE \
   -e DOTFILES_TARGET \
+  -e DOTFILES_HOST_WORKSPACE \
   -e HOST_UID \
   -e HOST_GID \
   -e SSH_AUTH_SOCK \
