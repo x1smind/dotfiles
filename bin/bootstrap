@@ -312,7 +312,6 @@ install_prereqs_debian() {
     log "[dry-run] sudo apt-get update -y"
     log "[dry-run] sudo apt-get install -y (linux/apt-packages.txt)"
     log "[dry-run] Handle fd alternative if needed"
-    log "[dry-run] Optional Homebrew on Linux bootstrap"
     return
   fi
   sudo apt-get update -y
@@ -322,15 +321,6 @@ install_prereqs_debian() {
   fi
   if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
     sudo update-alternatives --install /usr/local/bin/fd fd "$(command -v fdfind)" 10
-  fi
-  if ! command -v brew >/dev/null 2>&1; then
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    if [[ -d ~/.linuxbrew ]]; then
-      eval "$(~/.linuxbrew/bin/brew shellenv)"
-    elif [[ -d /home/linuxbrew/.linuxbrew ]]; then
-      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    fi
-    append_unique_line "$TARGET_HOME/.zshrc" 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
   fi
 }
 
