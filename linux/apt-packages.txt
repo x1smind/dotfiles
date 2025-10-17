@@ -20,3 +20,4 @@ python3-venv
 fontconfig
 liblzma-dev
 libyaml-dev
+unzip

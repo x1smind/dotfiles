@@ -380,6 +380,7 @@ install_powerlevel10k() {
 install_fonts() {
   if (( DRY_RUN )); then
     log "[dry-run] Install Hack & Meslo Nerd fonts (macOS via brew cask, Linux via ~/.local/share/fonts)"
+    log "[dry-run] Cache font archives under ${HOME}/.cache/dotfiles/fonts when present"
     return
   fi
   echo "Installing Hack Nerd Font (primary) and Meslo Nerd (secondary fallback)..."
@@ -398,13 +399,48 @@ install_fonts() {
       fi
     done
   else
+    if ! command -v unzip >/dev/null 2>&1; then
+      echo "unzip not available; skipping font install." >&2
+      return
+    fi
     local font_dir="$HOME/.local/share/fonts"
-    mkdir -p "$font_dir"
-    curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip -o /tmp/Hack.zip
-    unzip -o /tmp/Hack.zip -d "$font_dir" >/dev/null
-    curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip -o /tmp/Meslo.zip
-    unzip -o /tmp/Meslo.zip -d "$font_dir" >/dev/null
-    fc-cache -fv >/dev/null
+    local cache_root="${XDG_CACHE_HOME:-$HOME/.cache}"
+    local cache_dir="${cache_root}/dotfiles/fonts"
+    ensure_dir "$cache_dir"
+    ensure_dir "$font_dir"
+
+    local refreshed=0
+    local name url zip_path
+    while IFS=":" read -r name url; do
+      [[ -z "$name" || -z "$url" ]] && continue
+      zip_path="${cache_dir}/${name}.zip"
+      if [[ -f "$zip_path" ]]; then
+        log "Using cached archive for ${name} Nerd Font"
+      else
+        log "Downloading ${name} Nerd Font archive"
+        if ! curl -fsSL "$url" -o "$zip_path"; then
+          echo "Failed to download ${name} Nerd Font from ${url}; skipping." >&2
+          rm -f "$zip_path"
+          continue
+        fi
+      fi
+      if unzip -oq "$zip_path" -d "$font_dir"; then
+        refreshed=1
+      else
+        echo "Failed to extract ${zip_path}; removing cache entry." >&2
+        rm -f "$zip_path"
+      fi
+    done <<'EOF'
+Hack:https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip
+Meslo:https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip
+EOF
+    if (( refreshed )); then
+      if command -v fc-cache >/dev/null 2>&1; then
+        fc-cache -f "$font_dir" >/dev/null
+      else
+        log "fc-cache not found; skipped font cache refresh"
+      fi
+    fi
   fi
 }
 
