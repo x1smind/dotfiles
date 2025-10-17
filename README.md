@@ -110,3 +110,7 @@ Put extra snippets under `hosts/$(hostname)/` and they will be sourced automatic
   rm -f Brewfile.lock.json
   ```
 * If using Make targets (`make brew` or `make bootstrap`), no action is needed — they already reference `macos/Brewfile`.
+
+## Releases
+
+The current release is **v0.3.0**. See [CHANGELOG.md](CHANGELOG.md) for a complete history.
