@@ -25,7 +25,6 @@ create_runtime_user() {
   fi
 
   mkdir -p "${TARGET_HOME}"
-  chown "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}"
 }
 
 sanitize_ssh_config() {
@@ -48,13 +47,11 @@ sanitize_ssh_config() {
     chmod 600 "${dest_dir}/known_hosts"
   fi
 
-  chown -R "${TARGET_UID}:${TARGET_GID}" "${dest_dir}"
 }
 
 prepare_user_home() {
   mkdir -p "${TARGET_HOME}/.config"
   mkdir -p "${TARGET_HOME}/.cache"
-  chown "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}/.config" "${TARGET_HOME}/.cache"
 
   if [[ -f /host-home/.gitconfig ]]; then
     ln -sfn /host-home/.gitconfig "${TARGET_HOME}/.gitconfig"
@@ -71,10 +68,6 @@ prepare_user_home() {
 
   sanitize_ssh_config
 
-  chown -h "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}/.gitconfig" >/dev/null 2>&1 || true
-  chown -h "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}/.config/git" >/dev/null 2>&1 || true
-  chown -h "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}/.config/gh" >/dev/null 2>&1 || true
-  chown -h "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}/.codex" >/dev/null 2>&1 || true
 }
 
 configure_git() {
