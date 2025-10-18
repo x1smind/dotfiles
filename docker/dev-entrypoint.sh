@@ -37,7 +37,7 @@ sanitize_ssh_config() {
   chmod 700 "${dest_dir}"
 
   if [[ -f "${host_config}" ]]; then
-    grep -Ev '^\s*(AddKeysToAgent|UseKeychain)\b' "${host_config}" >"${sanitized}.tmp" || true
+    grep -Ev '^\s*(AddKeysToAgent|UseKeychain|IdentityFile|IdentitiesOnly)\b' "${host_config}" >"${sanitized}.tmp" || true
     mv "${sanitized}.tmp" "${sanitized}"
     chmod 600 "${sanitized}"
     ln -sfn "config_linux" "${dest_dir}/config"
