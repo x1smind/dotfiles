@@ -55,7 +55,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # Install Codex CLI (npm package).
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
- && npm install -g @openai/codex@0.46.0 \
+ && npm install -g @openai/codex@0.47.0 \
  && npm cache clean --force \
  && rm -rf /var/lib/apt/lists/*
 
@@ -65,16 +65,16 @@ RUN curl -fsSL https://github.com/tianon/gosu/releases/download/1.17/gosu-$(dpkg
  && chmod +x /usr/local/bin/gosu \
  && gosu --version >/dev/null
 
-# Default non-root user (UID/GID may be rewritten at runtime by entrypoint).
+# Default non-root user.
 RUN groupadd --non-unique --gid 1000 "${DEV_USER}" \
  && useradd --non-unique --uid 1000 --gid "${DEV_USER}" --create-home --shell /bin/bash "${DEV_USER}" \
  && echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/99-dev-user \
  && chmod 0440 /etc/sudoers.d/99-dev-user
 
+WORKDIR /workspace
+
 COPY docker/dev-entrypoint.sh /usr/local/bin/dev-entrypoint.sh
 RUN chmod +x /usr/local/bin/dev-entrypoint.sh
-
-WORKDIR /workspace
 
 ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]
 CMD ["/bin/bash", "-l"]

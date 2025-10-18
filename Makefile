@@ -9,7 +9,6 @@ define RUN_SMOKE
 		-w /workspace \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \
-		-e DOTFILES_HOST_WORKSPACE \
 		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)'
 endef
 
@@ -63,8 +62,7 @@ docker-dev-shell-internal:
 	@echo ">> Launching developer container shell"
 	@HOST_UID="$$(id -u)" \
 	 HOST_GID="$$(id -g)" \
-	 HOST_HOME="$$HOME" \
-	 HOST_WORKSPACE="$$(pwd)" \
+	 HOME_OVERRIDE=${HOME_OVERRIDE:-/workspace/.home} \
 	 SSH_AUTH_SOCK="$${SSH_AUTH_SOCK:-}" \
 	 DOCKER_COMPOSE="$(DOCKER_COMPOSE)" \
 	 COMPOSE_FILE="$(COMPOSE_FILE)" \
@@ -72,42 +70,25 @@ docker-dev-shell-internal:
 	 DOTFILES_TARGET="$${DOTFILES_TARGET:-}" \
 	 RUN_REBUILD="$(RUN_REBUILD)" \
 	 bash -c 'set -euo pipefail; \
-declare -a volumes=(); \
-if [ -f "$$HOST_HOME/.gitconfig" ]; then \
-  volumes+=("--volume" "$$HOST_HOME/.gitconfig:/host-home/.gitconfig:ro"); \
-fi; \
-if [ -d "$$HOST_HOME/.config/git" ]; then \
-  volumes+=("--volume" "$$HOST_HOME/.config/git:/host-home/.config/git:ro"); \
-fi; \
-if [ -d "$$HOST_HOME/.config/gh" ]; then \
-  volumes+=("--volume" "$$HOST_HOME/.config/gh:/host-home/.config/gh:rw"); \
-fi; \
-if [ -d "$$HOST_HOME/.codex" ]; then \
-  volumes+=("--volume" "$$HOST_HOME/.codex:/host-home/.codex:rw"); \
-fi; \
-if [ -d "$$HOST_HOME/.ssh" ]; then \
-  volumes+=("--volume" "$$HOST_HOME/.ssh:/host-home/.ssh:ro"); \
-fi; \
-ssh_sock=""; \
+extra_args=( "-e" "HOST_UID=$$HOST_UID" "-e" "HOST_GID=$$HOST_GID" "-e" "HOME_OVERRIDE=$$HOME_OVERRIDE" ); \
 if [ -S "$$SSH_AUTH_SOCK" ]; then \
-  ssh_sock="$$SSH_AUTH_SOCK"; \
-  volumes+=("--volume" "$$SSH_AUTH_SOCK:/ssh-agent:ro"); \
+  extra_args+=("-e" "SSH_AUTH_SOCK=/ssh-agent" "--volume" "$$SSH_AUTH_SOCK:/ssh-agent"); \
+fi; \
+if [ -f "$${HOME}/.gitconfig" ]; then \
+  extra_args+=("--volume" "$${HOME}/.gitconfig:/workspace/.home/.gitconfig:ro"); \
+fi; \
+if [ -f "$${HOME}/.ssh/known_hosts" ]; then \
+  extra_args+=("--volume" "$${HOME}/.ssh/known_hosts:/workspace/.home/.ssh/known_hosts:ro"); \
 fi; \
 if [ "$$RUN_REBUILD" = "1" ]; then \
   echo ">> Rebuilding dev image (no cache)"; \
   $$DOCKER_COMPOSE -f $$COMPOSE_FILE build --pull --no-cache dev; \
 fi; \
-HOST_UID=$$HOST_UID HOST_GID=$$HOST_GID SSH_AUTH_SOCK=$$ssh_sock \
 DOTFILES_PROFILE=$$DOTFILES_PROFILE DOTFILES_TARGET=$$DOTFILES_TARGET \
-DOTFILES_HOST_WORKSPACE=$$HOST_WORKSPACE \
 $$DOCKER_COMPOSE -f $$COMPOSE_FILE run --rm \
   -e DOTFILES_PROFILE \
   -e DOTFILES_TARGET \
-  -e DOTFILES_HOST_WORKSPACE \
-  -e HOST_UID \
-  -e HOST_GID \
-  -e SSH_AUTH_SOCK \
-  "$${volumes[@]}" \
+  "$${extra_args[@]}" \
   dev'
 
 docker-down: docker-ready

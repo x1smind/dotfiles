@@ -3,10 +3,10 @@ x-default-env: &default-env
 
 x-default-service: &default-service
   init: true
-  working_dir: /workspace
+  working_dir: /workspace/dotfiles
   environment: *default-env
   volumes:
-    - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
+    - ..:/workspace/dotfiles
 
 name: dotfiles
 
@@ -30,19 +30,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dev
-    entrypoint:
-      - /usr/local/bin/dev-entrypoint.sh
+    volumes:
+      - ..:/workspace/dotfiles
+      - /var/run/docker.sock:/var/run/docker.sock
     command:
       - /bin/bash
       - -l
-    volumes:
-      - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
-      - ${SSH_AUTH_SOCK:-/run/host-services/ssh-auth.sock}:/ssh-agent
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      <<: *default-env
-      HOST_UID: ${HOST_UID:-1000}
-      HOST_GID: ${HOST_GID:-1000}
-      SSH_AUTH_SOCK: /ssh-agent
-    working_dir: /workspace
-    user: "${UID:-1000}:${GID:-1000}"
