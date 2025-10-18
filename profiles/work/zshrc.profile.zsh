@@ -8,9 +8,12 @@ mkdir -p "$WORKSPACE_DIR" >/dev/null 2>&1 || true
 # export RBENV_VERSION=3.3.5
 
 # Git overrides
-cat > "$HOME/.gitconfig.work" <<'EOF'
+profile_git="$HOME/.gitconfig.work"
+if [[ ! -f "$profile_git" ]]; then
+  cat <<'EOT' > "$profile_git"
 [user]
     email = you@work.example
 [commit]
     gpgsign = true
-EOF
+EOT
+fi
