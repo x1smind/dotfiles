@@ -35,11 +35,14 @@ services:
     command:
       - /bin/bash
       - -l
+    volumes:
+      - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
+      - ${SSH_AUTH_SOCK:-/run/host-services/ssh-auth.sock}:/ssh-agent
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       <<: *default-env
       HOST_UID: ${HOST_UID:-1000}
       HOST_GID: ${HOST_GID:-1000}
-      SSH_AUTH_SOCK: ${SSH_AUTH_SOCK:-}
-    volumes:
-      - ${DOTFILES_HOST_WORKSPACE:-..}:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
+      SSH_AUTH_SOCK: /ssh-agent
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
