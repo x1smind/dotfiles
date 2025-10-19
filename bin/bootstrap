@@ -101,11 +101,13 @@ IFS=',' read -r -a _dotfiles_feature_raw <<<"$FEATURE_SPEC"
 DOTFILES_FEATURE_LIST=()
 for feature in "${_dotfiles_feature_raw[@]}"; do
   [[ -n "$feature" ]] || continue
-  for existing in "${DOTFILES_FEATURE_LIST[@]}"; do
-    if [[ "$existing" == "$feature" ]]; then
-      continue 2
-    fi
-  done
+  if ((${#DOTFILES_FEATURE_LIST[@]})); then
+    for existing in "${DOTFILES_FEATURE_LIST[@]}"; do
+      if [[ "$existing" == "$feature" ]]; then
+        continue 2
+      fi
+    done
+  fi
   DOTFILES_FEATURE_LIST+=("$feature")
 done
 unset _dotfiles_feature_raw
@@ -113,6 +115,9 @@ unset _dotfiles_feature_raw
 feature_enabled() {
   local name="$1"
   local current
+  if ((${#DOTFILES_FEATURE_LIST[@]} == 0)); then
+    return 1
+  fi
   for current in "${DOTFILES_FEATURE_LIST[@]}"; do
     if [[ "$current" == "$name" ]]; then
       return 0
