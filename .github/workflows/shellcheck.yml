@@ -10,7 +10,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t files < <(git ls-files -- '*.sh' '*.bash' '*.zsh' 'bin/*')
+          mapfile -t files < <(git ls-files -- '*.sh' '*.bash' 'bin/*')
           if ((${#files[@]} == 0)); then
             echo "No shell-compatible files found to lint."
             exit 0

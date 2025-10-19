@@ -6,7 +6,7 @@ DOCKER_SERVICES := ubuntu fedora
 define RUN_SMOKE
 	@echo ">> Running smoke ($(2)) in $(1)"
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --pull always --build --rm \
-		-w /workspace \
+		-w /workspace/dotfiles \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \
 		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)'
@@ -49,7 +49,7 @@ docker-shell-%: docker-ready
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --rm \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \
-		-w /workspace \
+		-w /workspace/dotfiles \
 		$* bash -l
 
 docker-dev-shell: docker-ready
