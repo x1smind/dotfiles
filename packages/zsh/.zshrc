@@ -9,8 +9,10 @@ if [ -s "$ZSH/oh-my-zsh.sh" ]; then
 fi
 
 # Load modular pieces
-for f in $HOME/.zshrc.d/*.zsh; do
-  [ -r "$f" ] && source "$f"
+for rc_dir in "$HOME/.zshrc.d" "$HOME/zshrc.d"; do
+  for f in "$rc_dir"/*.zsh; do
+    [ -r "$f" ] && source "$f"
+  done
 done
 
 # Profile/host overrides
