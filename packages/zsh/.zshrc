@@ -9,11 +9,13 @@ if [ -s "$ZSH/oh-my-zsh.sh" ]; then
 fi
 
 # Load modular pieces
+setopt null_glob 2>/dev/null
 for rc_dir in "$HOME/.zshrc.d" "$HOME/zshrc.d"; do
-  for f in "$rc_dir"/*.zsh; do
+  for f in "${rc_dir}"/*.zsh; do
     [ -r "$f" ] && source "$f"
   done
 done
+unsetopt null_glob 2>/dev/null
 
 # Profile/host overrides
 [ -r "$HOME/.profile.local" ] && source "$HOME/.profile.local"
