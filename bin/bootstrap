@@ -104,6 +104,59 @@ else
   fi
 fi
 
+# Fallback package lists used before the repo is cloned. Keep in sync with linux/*-packages.txt.
+DEFAULT_APT_PACKAGES=(
+  git
+  zsh
+  stow
+  curl
+  wget
+  tmux
+  ripgrep
+  fd-find
+  fzf
+  build-essential
+  libssl-dev
+  zlib1g-dev
+  libbz2-dev
+  libreadline-dev
+  libsqlite3-dev
+  libffi-dev
+  neovim
+  python3-pip
+  python3-venv
+  fontconfig
+  liblzma-dev
+  libyaml-dev
+  unzip
+)
+
+DEFAULT_DNF_PACKAGES=(
+  zsh
+  stow
+  curl
+  wget
+  tmux
+  ripgrep
+  fd-find
+  fzf
+  @development-tools
+  openssl-devel
+  zlib-devel
+  bzip2
+  bzip2-devel
+  readline-devel
+  sqlite-devel
+  libffi-devel
+  neovim
+  python3-pip
+  python3-virtualenv
+  fontconfig
+  xz-devel
+  libyaml-devel
+  unzip
+)
+
 FEATURE_SPEC="${DOTFILES_FEATURES:-core,nvm,pyenv,rbenv}"
 FEATURE_SPEC="${FEATURE_SPEC//[[:space:]]/}"
 if [[ "$FEATURE_SPEC" == "all" ]]; then
@@ -479,33 +532,45 @@ install_prereqs_macos() {
 }
 
 install_prereqs_debian() {
+  local package_file="$REPO_DIR/linux/apt-packages.txt"
+  local packages=()
+  if [[ -f "$package_file" ]]; then
+    mapfile -t packages < <(grep -vE '^\s*(#|$)' "$package_file")
+  fi
+  if ((${#packages[@]} == 0)); then
+    packages=("${DEFAULT_APT_PACKAGES[@]}")
+  fi
+
   if ((DRY_RUN)); then
     log "[dry-run] ${SUDO_LABEL}apt-get update -y"
-    log "[dry-run] ${SUDO_LABEL}apt-get install -y (linux/apt-packages.txt)"
+    log "[dry-run] ${SUDO_LABEL}apt-get install -y ${packages[*]}"
     log "[dry-run] Handle fd alternative if needed"
     return
   fi
   "${SUDO_CMD[@]}" apt-get update -y
-  mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/apt-packages.txt" || true)
-  if ((${#packages[@]})); then
-    "${SUDO_CMD[@]}" apt-get install -y "${packages[@]}"
-  fi
+  "${SUDO_CMD[@]}" apt-get install -y "${packages[@]}"
   if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
     "${SUDO_CMD[@]}" update-alternatives --install /usr/local/bin/fd fd "$(command -v fdfind)" 10
   fi
 }
 
 install_prereqs_fedora() {
+  local package_file="$REPO_DIR/linux/dnf-packages.txt"
+  local packages=()
+  if [[ -f "$package_file" ]]; then
+    mapfile -t packages < <(grep -vE '^\s*(#|$)' "$package_file")
+  fi
+  if ((${#packages[@]} == 0)); then
+    packages=("${DEFAULT_DNF_PACKAGES[@]}")
+  fi
+
   if ((DRY_RUN)); then
     log "[dry-run] ${SUDO_LABEL}dnf makecache"
-    log "[dry-run] ${SUDO_LABEL}dnf install -y (linux/dnf-packages.txt)"
+    log "[dry-run] ${SUDO_LABEL}dnf install -y ${packages[*]}"
     return
   fi
   "${SUDO_CMD[@]}" dnf makecache
-  mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/dnf-packages.txt" || true)
-  if ((${#packages[@]})); then
-    "${SUDO_CMD[@]}" dnf install -y "${packages[@]}"
-  fi
+  "${SUDO_CMD[@]}" dnf install -y "${packages[@]}"
 }
 
 install_ohmyzsh() {
@@ -844,7 +909,47 @@ switch_default_shell() {
   fi
 }
 
+ensure_git_bootstrap() {
+  local os="$1"
+  if command -v git >/dev/null 2>&1; then
+    return
+  fi
+
+  case "$os" in
+    debian)
+      if ((DRY_RUN)); then
+        log "[dry-run] ${SUDO_LABEL}apt-get update -y (ensure git)"
+        log "[dry-run] ${SUDO_LABEL}apt-get install -y git"
+        return
+      fi
+      "${SUDO_CMD[@]}" apt-get update -y
+      "${SUDO_CMD[@]}" apt-get install -y git
+      ;;
+    fedora)
+      if ((DRY_RUN)); then
+        log "[dry-run] ${SUDO_LABEL}dnf makecache (ensure git)"
+        log "[dry-run] ${SUDO_LABEL}dnf install -y git"
+        return
+      fi
+      "${SUDO_CMD[@]}" dnf makecache
+      "${SUDO_CMD[@]}" dnf install -y git
+      ;;
+    macos)
+      echo "git is required to clone the dotfiles repository. Install the Xcode Command Line Tools (xcode-select --install) and re-run bootstrap." >&2
+      exit 1
+      ;;
+    *)
+      echo "git not found and automatic installation unsupported for OS: $os" >&2
+      exit 1
+      ;;
+  esac
+}
+
 main() {
+  OS=$(detect_os)
+
+  ensure_git_bootstrap "$OS"
+
   if [[ ! -d "$REPO_DIR/.git" ]]; then
     if ((DRY_RUN)); then
       log "[dry-run] Clone dotfiles repo into $REPO_DIR"
@@ -854,7 +959,6 @@ main() {
     fi
   fi
 
-  OS=$(detect_os)
   case "$OS" in
     macos) install_prereqs_macos ;;
     debian) install_prereqs_debian ;;
