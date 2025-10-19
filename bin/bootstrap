@@ -33,6 +33,7 @@ if [[ -n "$SCRIPT_DIR" ]]; then
 fi
 
 REPO_DIR="${REPO_DIR:-$REPO_DEFAULT}"
+REPO_REMOTE="${DOTFILES_REMOTE:-https://github.com/x1smind/dotfiles.git}"
 STOW_PKGS=()
 TARGET_HOME="${DOTFILES_TARGET:-$REAL_HOME}"
 DRY_RUN=0
@@ -955,7 +956,10 @@ main() {
       log "[dry-run] Clone dotfiles repo into $REPO_DIR"
     else
       ensure_dir "$(dirname "$REPO_DIR")"
-      git clone "https://github.com/<you>/dotfiles" "$REPO_DIR" || true
+      if ! git clone "$REPO_REMOTE" "$REPO_DIR"; then
+        echo "Failed to clone dotfiles repository from ${REPO_REMOTE}" >&2
+        exit 1
+      fi
     fi
   fi
 
