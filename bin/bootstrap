@@ -89,6 +89,21 @@ done
 
 log() { printf '>> %s\n' "$*"; }
 
+SUDO_CMD=()
+SUDO_LABEL=""
+if ((EUID == 0)); then
+  SUDO_CMD=()
+  SUDO_LABEL=""
+else
+  if command -v sudo >/dev/null 2>&1; then
+    SUDO_CMD=(sudo)
+    SUDO_LABEL="sudo "
+  else
+    echo "sudo is required to elevate privileges. Install sudo or re-run bootstrap as root." >&2
+    exit 1
+  fi
+fi
+
 FEATURE_SPEC="${DOTFILES_FEATURES:-core,nvm,pyenv,rbenv}"
 FEATURE_SPEC="${FEATURE_SPEC//[[:space:]]/}"
 if [[ "$FEATURE_SPEC" == "all" ]]; then
@@ -465,31 +480,31 @@ install_prereqs_macos() {
 
 install_prereqs_debian() {
   if ((DRY_RUN)); then
-    log "[dry-run] sudo apt-get update -y"
-    log "[dry-run] sudo apt-get install -y (linux/apt-packages.txt)"
+    log "[dry-run] ${SUDO_LABEL}apt-get update -y"
+    log "[dry-run] ${SUDO_LABEL}apt-get install -y (linux/apt-packages.txt)"
     log "[dry-run] Handle fd alternative if needed"
     return
   fi
-  sudo apt-get update -y
+  "${SUDO_CMD[@]}" apt-get update -y
   mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/apt-packages.txt" || true)
   if ((${#packages[@]})); then
-    sudo apt-get install -y "${packages[@]}"
+    "${SUDO_CMD[@]}" apt-get install -y "${packages[@]}"
   fi
   if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
-    sudo update-alternatives --install /usr/local/bin/fd fd "$(command -v fdfind)" 10
+    "${SUDO_CMD[@]}" update-alternatives --install /usr/local/bin/fd fd "$(command -v fdfind)" 10
   fi
 }
 
 install_prereqs_fedora() {
   if ((DRY_RUN)); then
-    log "[dry-run] sudo dnf makecache"
-    log "[dry-run] sudo dnf install -y (linux/dnf-packages.txt)"
+    log "[dry-run] ${SUDO_LABEL}dnf makecache"
+    log "[dry-run] ${SUDO_LABEL}dnf install -y (linux/dnf-packages.txt)"
     return
   fi
-  sudo dnf makecache
+  "${SUDO_CMD[@]}" dnf makecache
   mapfile -t packages < <(grep -vE '^\s*(#|$)' "$REPO_DIR/linux/dnf-packages.txt" || true)
   if ((${#packages[@]})); then
-    sudo dnf install -y "${packages[@]}"
+    "${SUDO_CMD[@]}" dnf install -y "${packages[@]}"
   fi
 }
 
@@ -655,20 +670,20 @@ ensure_stow() {
       ;;
     debian)
       if ((DRY_RUN)); then
-        log "[dry-run] Ensure GNU Stow via: sudo apt-get install -y stow"
+        log "[dry-run] Ensure GNU Stow via: ${SUDO_LABEL}apt-get install -y stow"
         return
       else
         log "Installing GNU Stow via apt-get"
-        sudo apt-get install -y stow
+        "${SUDO_CMD[@]}" apt-get install -y stow
       fi
       ;;
     fedora)
       if ((DRY_RUN)); then
-        log "[dry-run] Ensure GNU Stow via: sudo dnf install -y stow"
+        log "[dry-run] Ensure GNU Stow via: ${SUDO_LABEL}dnf install -y stow"
         return
       else
         log "Installing GNU Stow via dnf"
-        sudo dnf install -y stow
+        "${SUDO_CMD[@]}" dnf install -y stow
       fi
       ;;
     *)

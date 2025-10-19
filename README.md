@@ -21,6 +21,8 @@ Cross‑platform dotfiles + bootstrap for **macOS** and **Linux (Debian/Ubuntu f
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/x1smind/dotfiles/main/bin/bootstrap)"
 ```
 
+> Prerequisite: install `curl` first (e.g., `sudo apt-get install -y curl` on Debian/Ubuntu).
+
 Or locally:
 
 ```bash
