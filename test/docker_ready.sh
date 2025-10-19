@@ -7,7 +7,7 @@ TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/docker-ready.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 stub_log="${TMP_DIR}/docker.log"
-cat <<'EOF' > "${TMP_DIR}/docker"
+cat <<'EOF' >"${TMP_DIR}/docker"
 #!/usr/bin/env bash
 set -euo pipefail
 log_file="__LOG_FILE__"

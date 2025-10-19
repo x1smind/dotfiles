@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2030,SC2031  # subshell fixtures intentionally scope CASE_DIR/HOME_DIR per scenario
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,7 +12,7 @@ usage() {
 }
 
 create_common_stubs() {
-  cat <<'EOF' > "${STUB_ROOT}/xcode-select"
+  cat <<'EOF' >"${STUB_ROOT}/xcode-select"
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
@@ -28,7 +29,7 @@ exit 0
 EOF
   chmod +x "${STUB_ROOT}/xcode-select"
 
-  cat <<'EOF' > "${STUB_ROOT}/curl"
+  cat <<'EOF' >"${STUB_ROOT}/curl"
 #!/usr/bin/env bash
 echo "curl stub invoked unexpectedly: $*" >&2
 exit 99
@@ -131,7 +132,10 @@ PY
 assert_shellenv_line() {
   local expected_path="$1"
   local file="$2"
-  [[ -f "$file" ]] || { echo "Expected $file to exist" >&2; return 1; }
+  [[ -f "$file" ]] || {
+    echo "Expected $file to exist" >&2
+    return 1
+  }
   local count
   count="$(grep -c 'brew shellenv' "$file" || true)"
   if [[ "$count" -ne 1 ]]; then
@@ -184,7 +188,7 @@ case_present_arm64() {
   local brew_state="${CASE_DIR}/brew-arm64.tap"
   mkdir -p "$brew_bin_dir"
   touch "$brew_log"
-  printf 'homebrew/cask-fonts\n' > "$brew_state"
+  printf 'homebrew/cask-fonts\n' >"$brew_state"
   create_brew_stub "${brew_bin_dir}/brew" "$brew_prefix" "$brew_log" "$brew_state"
   PATH="${brew_bin_dir}:${PATH}"
   export PATH
@@ -193,20 +197,41 @@ case_present_arm64() {
 
   local brew_cmd
   brew_cmd="$(command -v brew)"
-  [[ -n "$brew_cmd" ]] || { echo "brew not detected in arm64 present case" >&2; exit 1; }
+  [[ -n "$brew_cmd" ]] || {
+    echo "brew not detected in arm64 present case" >&2
+    exit 1
+  }
   assert_shellenv_line "$brew_cmd" "${HOME_DIR}/.zprofile"
-  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || { echo "PATH missing ${brew_prefix}/bin" >&2; exit 1; }
-  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || { echo "brew bundle not invoked (arm64)" >&2; exit 1; }
-  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || { echo "preflight did not untap deprecated tap (arm64)" >&2; exit 1; }
+  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || {
+    echo "PATH missing ${brew_prefix}/bin" >&2
+    exit 1
+  }
+  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || {
+    echo "brew bundle not invoked (arm64)" >&2
+    exit 1
+  }
+  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || {
+    echo "preflight did not untap deprecated tap (arm64)" >&2
+    exit 1
+  }
 
   local snapshot="${CASE_DIR}/zprofile.snapshot"
   cp "${HOME_DIR}/.zprofile" "$snapshot"
   install_prereqs_macos
-  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || { echo ".zprofile changed on rerun (arm64)" >&2; exit 1; }
+  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || {
+    echo ".zprofile changed on rerun (arm64)" >&2
+    exit 1
+  }
   local untap_count
   untap_count="$(grep -c '^untap homebrew/cask-fonts$' "$brew_log" || true)"
-  [[ "$untap_count" -eq 1 ]] || { echo "untap should run once (arm64); saw ${untap_count}" >&2; exit 1; }
-  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || { echo "deprecated tap persisted after untap (arm64)" >&2; exit 1; }
+  [[ "$untap_count" -eq 1 ]] || {
+    echo "untap should run once (arm64); saw ${untap_count}" >&2
+    exit 1
+  }
+  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || {
+    echo "deprecated tap persisted after untap (arm64)" >&2
+    exit 1
+  }
 }
 
 case_present_intel() {
@@ -217,7 +242,7 @@ case_present_intel() {
   local brew_state="${CASE_DIR}/brew-intel.tap"
   mkdir -p "$brew_bin_dir"
   touch "$brew_log"
-  printf 'homebrew/cask-fonts\nhomebrew/core\n' > "$brew_state"
+  printf 'homebrew/cask-fonts\nhomebrew/core\n' >"$brew_state"
   create_brew_stub "${brew_bin_dir}/brew" "$brew_prefix" "$brew_log" "$brew_state"
   PATH="${brew_bin_dir}:${PATH}"
   export PATH
@@ -226,20 +251,41 @@ case_present_intel() {
 
   local brew_cmd
   brew_cmd="$(command -v brew)"
-  [[ -n "$brew_cmd" ]] || { echo "brew not detected in intel present case" >&2; exit 1; }
+  [[ -n "$brew_cmd" ]] || {
+    echo "brew not detected in intel present case" >&2
+    exit 1
+  }
   assert_shellenv_line "$brew_cmd" "${HOME_DIR}/.zprofile"
-  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || { echo "PATH missing ${brew_prefix}/bin" >&2; exit 1; }
-  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || { echo "brew bundle not invoked (intel)" >&2; exit 1; }
-  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || { echo "preflight did not untap deprecated tap (intel)" >&2; exit 1; }
+  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || {
+    echo "PATH missing ${brew_prefix}/bin" >&2
+    exit 1
+  }
+  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || {
+    echo "brew bundle not invoked (intel)" >&2
+    exit 1
+  }
+  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || {
+    echo "preflight did not untap deprecated tap (intel)" >&2
+    exit 1
+  }
 
   local snapshot="${CASE_DIR}/zprofile-intel.snapshot"
   cp "${HOME_DIR}/.zprofile" "$snapshot"
   install_prereqs_macos
-  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || { echo ".zprofile changed on rerun (intel)" >&2; exit 1; }
+  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || {
+    echo ".zprofile changed on rerun (intel)" >&2
+    exit 1
+  }
   local untap_count
   untap_count="$(grep -c '^untap homebrew/cask-fonts$' "$brew_log" || true)"
-  [[ "$untap_count" -eq 1 ]] || { echo "untap should run once (intel); saw ${untap_count}" >&2; exit 1; }
-  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || { echo "deprecated tap persisted after untap (intel)" >&2; exit 1; }
+  [[ "$untap_count" -eq 1 ]] || {
+    echo "untap should run once (intel); saw ${untap_count}" >&2
+    exit 1
+  }
+  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || {
+    echo "deprecated tap persisted after untap (intel)" >&2
+    exit 1
+  }
 }
 
 case_install_fresh() {
@@ -250,7 +296,7 @@ case_install_fresh() {
   local brew_state="${CASE_DIR}/brew-install.tap"
   local brew_template="${CASE_DIR}/brew-template.sh"
   touch "$brew_log"
-  printf 'homebrew/cask-fonts\n' > "$brew_state"
+  printf 'homebrew/cask-fonts\n' >"$brew_state"
   mkdir -p "$brew_prefix"
   mkdir -p "$(dirname "$brew_template")"
   create_brew_stub "$brew_template" "$brew_prefix" "$brew_log" "$brew_state"
@@ -286,20 +332,41 @@ PY
 
   local brew_cmd
   brew_cmd="$(command -v brew)"
-  [[ -x "$brew_cmd" ]] || { echo "brew installer stub did not create brew" >&2; exit 1; }
+  [[ -x "$brew_cmd" ]] || {
+    echo "brew installer stub did not create brew" >&2
+    exit 1
+  }
   assert_shellenv_line "$brew_cmd" "${HOME_DIR}/.zprofile"
-  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || { echo "PATH missing ${brew_prefix}/bin after install" >&2; exit 1; }
-  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || { echo "brew bundle not invoked after install" >&2; exit 1; }
-  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || { echo "preflight did not untap deprecated tap after install" >&2; exit 1; }
+  [[ ":$PATH:" == *":${brew_prefix}/bin:"* ]] || {
+    echo "PATH missing ${brew_prefix}/bin after install" >&2
+    exit 1
+  }
+  grep -q "bundle --file ${REPO_DIR}/macos/Brewfile" "$brew_log" || {
+    echo "brew bundle not invoked after install" >&2
+    exit 1
+  }
+  grep -q '^untap homebrew/cask-fonts$' "$brew_log" || {
+    echo "preflight did not untap deprecated tap after install" >&2
+    exit 1
+  }
 
   local snapshot="${CASE_DIR}/zprofile-install.snapshot"
   cp "${HOME_DIR}/.zprofile" "$snapshot"
   install_prereqs_macos
-  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || { echo ".zprofile changed on rerun after install" >&2; exit 1; }
+  cmp -s "$snapshot" "${HOME_DIR}/.zprofile" || {
+    echo ".zprofile changed on rerun after install" >&2
+    exit 1
+  }
   local untap_count
   untap_count="$(grep -c '^untap homebrew/cask-fonts$' "$brew_log" || true)"
-  [[ "$untap_count" -eq 1 ]] || { echo "untap should run once after install; saw ${untap_count}" >&2; exit 1; }
-  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || { echo "deprecated tap persisted after untap (install)" >&2; exit 1; }
+  [[ "$untap_count" -eq 1 ]] || {
+    echo "untap should run once after install; saw ${untap_count}" >&2
+    exit 1
+  }
+  ! grep -qx 'homebrew/cask-fonts' "$brew_state" || {
+    echo "deprecated tap persisted after untap (install)" >&2
+    exit 1
+  }
 }
 
 run_stub_tests() {

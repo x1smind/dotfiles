@@ -22,7 +22,7 @@ echo "=== GPG key setup ==="
 if ! gpg --list-secret-keys --keyid-format=long 2>/dev/null | grep -q sec; then
   read -rp "Generate a new GPG key now? (y/N) " yn
   if [[ "${yn:-N}" =~ ^[Yy]$ ]]; then
-    cat > /tmp/gpg-batch <<'EOF'
+    cat >/tmp/gpg-batch <<'EOF'
 %no-protection
 Key-Type: eddsa
 Key-Curve: ed25519

@@ -6,7 +6,7 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 MODE="${1:-dry}"
 case "$MODE" in
-  dry|real) ;;
+  dry | real) ;;
   *)
     echo "Usage: $0 [dry|real]" >&2
     exit 2
@@ -22,7 +22,7 @@ fi
 DOTFILES_PROFILE="${DOTFILES_PROFILE:-personal}"
 
 cleanup() {
-  if (( created_target )); then
+  if ((created_target)); then
     rm -rf "$DOTFILES_TARGET"
   fi
 }
@@ -42,16 +42,16 @@ echo ">> Running ${bootstrap_cmd[*]}"
 
 if [[ "$MODE" == "dry" ]]; then
   echo ">> Running stdin bootstrap simulation"
-  DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
-  DOTFILES_TARGET="${DOTFILES_TARGET}" \
-  REPO_DIR="${REPO_DIR}" \
-    bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" < "${REPO_DIR}/bin/bootstrap"
+  env DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
+    DOTFILES_TARGET="${DOTFILES_TARGET}" \
+    REPO_DIR="${REPO_DIR}" \
+    bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" <"${REPO_DIR}/bin/bootstrap"
 
   echo ">> Running minimal feature bootstrap (DOTFILES_FEATURES=core)"
   core_target="$(mktemp -d)"
-  DOTFILES_FEATURES=core \
-  DOTFILES_TARGET="${core_target}" \
-  DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
+  env DOTFILES_FEATURES=core \
+    DOTFILES_TARGET="${core_target}" \
+    DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
     "${REPO_DIR}/bin/bootstrap" --dry-run --target "${core_target}" --profile "${DOTFILES_PROFILE}"
   rm -rf "${core_target}"
 fi
