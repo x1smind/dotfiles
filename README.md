@@ -140,6 +140,13 @@ Running `~/.dotfiles/bin/bootstrap --dry-run --target "$(mktemp -d)" --profile p
   ```
 * If using Make targets (`make brew` or `make bootstrap`), no action is needed — they already reference `macos/Brewfile`.
 
+### 2025-10-20
+
+* Bootstrap downloads Neovim 0.11.4 tarballs (Linux/macOS) and ships a Lazy.nvim config with neo-tree v3, Telescope fzf-native, and new colorschemes.
+* macOS flow prompts for missing Xcode Command Line Tools and surfaces guidance when Homebrew locks aren’t writable.
+* Existing pyenv/rbenv installs and global `git config` identity are reused instead of overwritten.
+* README now documents rollback steps and zsh aliases/dev-shell defaults were refreshed.
+
 ## Releases
 
-The current release is **v0.3.0**. See [CHANGELOG.md](CHANGELOG.md) for a complete history.
+The current release is **v0.4.0**. See [CHANGELOG.md](CHANGELOG.md) for a complete history.
