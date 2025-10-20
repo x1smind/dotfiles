@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.4.0] - 2025-10-20
+
+### Added
+- Neovim 0.11.4 distribution with Lazy.nvim-based config, including neo-tree v3, Telescope defaults, and requested colorschemes.
+- README rollback guide describing how to undo bootstrap operations.
+
+### Changed
+- Linux bootstraps fetch architecture-specific Neovim tarballs and ship fallback apt/dnf package lists so remote installs succeed even before cloning.
+- Zsh aliases, tmux defaults, and dev-shell environment exports updated to match daily workflows.
+- `.gitignore` cleaned up to stop ignoring `.home/` and other new artifacts.
+
+### Fixed
+- macOS flow now prompts for Xcode Command Line Tools when git is missing and surfaces actionable guidance when Homebrew locks are not writable.
+- Bootstrap reuses existing pyenv/rbenv installs and preserves any pre-existing global git identity when linking dotfiles.
+- Telescope finds hidden files and uses the fzf-native backend for faster search.
+
 ## [v0.3.0] - 2025-10-17
 
 ### Added
@@ -27,4 +43,3 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Initial public beta with cross-platform dotfiles, Stow-based layout, and bootstrap harness.
-
