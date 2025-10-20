@@ -104,6 +104,18 @@ DOTFILES_FEATURES=core,nvm bin/bootstrap --target "$HOME"
 
 Put extra snippets under `hosts/$(hostname)/` and they will be sourced automatically.
 
+## Rollback guide
+
+The bootstrapper backs up or installs everything in predictable locations, so you can undo changes if a run fails midway.
+
+1. **Restore archived dotfiles** – Conflicting originals are moved to `~/.dotfiles/.bootstrap-backups/<timestamp>/`. Copy what you need back into `$HOME`.
+2. **Remove Stow links** – If symlinks were created, run `cd ~/.dotfiles && stow -D git nvim tmux vim zsh` (adjust the package list as needed).
+3. **Clean loader snippets** – Remove any `source "~/.dotfiles/..."` lines appended to `~/.zprofile`, `~/.zshrc.local`, or `~/.gitconfig.local`.
+4. **Optional tool cleanup** – Delete tool managers if you want a pristine state: `rm -rf ~/.oh-my-zsh ~/.tmux/plugins/tpm ~/.nvm ~/.pyenv ~/.rbenv`.
+5. **Remove the repo clone** – If you no longer want it, `rm -rf ~/.dotfiles`.
+
+Running `~/.dotfiles/bin/bootstrap --dry-run --target "$(mktemp -d)" --profile personal` shows what would run without touching your real home; it’s handy to double-check the current state before trying again.
+
 ## Migration notes
 
 ### 2025-10-07
