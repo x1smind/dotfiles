@@ -7,7 +7,7 @@ map("n", "<leader>e", function()
 end, { desc = "Toggle Neo-tree" })
 
 map("n", "<leader>ff", function()
-  require("telescope.builtin").find_files()
+  require("telescope.builtin").find_files({ hidden = true, no_ignore = true })
 end, { desc = "Find files" })
 
 map("n", "<leader>fg", function()

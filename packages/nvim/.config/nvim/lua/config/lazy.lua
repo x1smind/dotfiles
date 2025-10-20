@@ -60,7 +60,27 @@ require("lazy").setup({
   },
   {
     "nvim-telescope/telescope.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      {
+        "nvim-telescope/telescope-fzf-native.nvim",
+        build = "make",
+      },
+    },
+    config = function()
+      require("telescope").setup({
+        defaults = {
+          file_ignore_patterns = { "%.git/" },
+        },
+        pickers = {
+          find_files = {
+            hidden = true,
+            no_ignore = true,
+          },
+        },
+      })
+      pcall(require("telescope").load_extension, "fzf")
+    end,
   },
   {
     "lewis6991/gitsigns.nvim",

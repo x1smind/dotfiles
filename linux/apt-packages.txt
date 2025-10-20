@@ -8,6 +8,7 @@ ripgrep
 fd-find
 fzf
 build-essential
+cmake
 libssl-dev
 zlib1g-dev
 libbz2-dev
