@@ -118,6 +118,7 @@ DEFAULT_APT_PACKAGES=(
   ripgrep
   fd-find
   fzf
+  cmake
   build-essential
   libssl-dev
   zlib1g-dev
@@ -142,6 +143,7 @@ DEFAULT_DNF_PACKAGES=(
   ripgrep
   fd-find
   fzf
+  cmake
   @development-tools
   openssl-devel
   zlib-devel
