@@ -14,7 +14,6 @@ libbz2-dev
 libreadline-dev
 libsqlite3-dev
 libffi-dev
-neovim
 python3-pip
 python3-venv
 fontconfig

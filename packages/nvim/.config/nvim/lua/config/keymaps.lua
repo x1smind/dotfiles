@@ -1,0 +1,15 @@
+local map = vim.keymap.set
+
+map({ "n", "v" }, "<Space>", "<Nop>", { silent = true })
+
+map("n", "<leader>e", function()
+  require("neo-tree.command").execute({ toggle = true, dir = vim.loop.cwd() })
+end, { desc = "Toggle Neo-tree" })
+
+map("n", "<leader>ff", function()
+  require("telescope.builtin").find_files()
+end, { desc = "Find files" })
+
+map("n", "<leader>fg", function()
+  require("telescope.builtin").live_grep()
+end, { desc = "Live grep" })

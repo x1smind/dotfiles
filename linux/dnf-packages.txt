@@ -14,7 +14,6 @@ bzip2-devel
 readline-devel
 sqlite-devel
 libffi-devel
-neovim
 python3-pip
 python3-virtualenv
 fontconfig

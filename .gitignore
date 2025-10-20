@@ -12,6 +12,3 @@ docker/.env
 docker/.env.local
 docker/.cache/
 docker/volumes/
-
-
-.home/

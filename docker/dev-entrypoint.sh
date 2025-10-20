@@ -127,6 +127,8 @@ configure_git_safe
 
 export HOME="$HOME_OVERRIDE"
 export USER="$user_name"
+export TERM="${TERM:-xterm-256color}"
+export COLORTERM="${COLORTERM:-truecolor}"
 
 if ((HAS_GOSU)); then
   exec gosu "$user_name:$group_name" "$@"

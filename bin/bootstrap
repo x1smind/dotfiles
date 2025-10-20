@@ -123,7 +123,6 @@ DEFAULT_APT_PACKAGES=(
   libreadline-dev
   libsqlite3-dev
   libffi-dev
-  neovim
   python3-pip
   python3-venv
   fontconfig
@@ -149,7 +148,6 @@ DEFAULT_DNF_PACKAGES=(
   readline-devel
   sqlite-devel
   libffi-devel
-  neovim
   python3-pip
   python3-virtualenv
   fontconfig
@@ -157,6 +155,8 @@ DEFAULT_DNF_PACKAGES=(
   libyaml-devel
   unzip
 )
+
+NEOVIM_DESIRED_VERSION="0.11.4"
 
 FEATURE_SPEC="${DOTFILES_FEATURES:-core,nvm,pyenv,rbenv}"
 FEATURE_SPEC="${FEATURE_SPEC//[[:space:]]/}"
@@ -574,6 +574,60 @@ install_prereqs_fedora() {
   "${SUDO_CMD[@]}" dnf install -y "${packages[@]}"
 }
 
+ensure_neovim_linux() {
+  local desired="$NEOVIM_DESIRED_VERSION"
+  local desired_tag="v${desired}"
+  local install_root="/usr/local/neovim"
+  local install_dir="${install_root}/${desired}"
+  if command -v nvim >/dev/null 2>&1; then
+    local current
+    current="$(nvim --version | head -n1 | awk '{print $2}')"
+    if [[ "$current" == "$desired" ]]; then
+      return
+    fi
+  fi
+  if ((DRY_RUN)); then
+    log "[dry-run] Install Neovim ${desired} under ${install_dir} and symlink /usr/local/bin/nvim"
+    return
+  fi
+  local tmp
+  tmp="$(mktemp -d)"
+  local archive="${tmp}/nvim-linux64.tar.gz"
+  local url="https://github.com/neovim/neovim/releases/download/${desired_tag}/nvim-linux64.tar.gz"
+  if ! curl -fsSL "$url" -o "$archive"; then
+    echo "Failed to download Neovim ${desired} from ${url}" >&2
+    rm -rf "$tmp"
+    return 1
+  fi
+  tar -xzf "$archive" -C "$tmp"
+  "${SUDO_CMD[@]}" rm -rf "$install_dir"
+  "${SUDO_CMD[@]}" mkdir -p "$install_root"
+  "${SUDO_CMD[@]}" mv "${tmp}/nvim-linux64" "$install_dir"
+  "${SUDO_CMD[@]}" ln -sfn "${install_dir}/bin/nvim" /usr/local/bin/nvim
+  rm -rf "$tmp"
+  log "Installed Neovim ${desired} -> /usr/local/bin/nvim"
+}
+
+ensure_neovim() {
+  local os="$1"
+  case "$os" in
+    debian|fedora)
+      ensure_neovim_linux
+      ;;
+    macos)
+      if command -v nvim >/dev/null 2>&1; then
+        local current
+        current="$(nvim --version | head -n1 | awk '{print $2}')"
+        if [[ "$current" != "$NEOVIM_DESIRED_VERSION" ]]; then
+          log "Neovim ${current} detected (desired ${NEOVIM_DESIRED_VERSION}). Run 'brew upgrade neovim' if available."
+        fi
+      else
+        log "Neovim not found; install via 'brew install neovim'."
+      fi
+      ;;
+  esac
+}
+
 install_ohmyzsh() {
   if ((DRY_RUN)); then
     log "[dry-run] Install Oh My Zsh into $HOME/.oh-my-zsh"
@@ -972,6 +1026,8 @@ main() {
       exit 1
       ;;
   esac
+
+  ensure_neovim "$OS"
 
   sanity_checks
 
