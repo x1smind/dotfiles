@@ -1063,7 +1063,11 @@ ensure_git_bootstrap() {
       "${SUDO_CMD[@]}" dnf install -y git
       ;;
     macos)
-      echo "git is required to clone the dotfiles repository. Install the Xcode Command Line Tools (xcode-select --install) and re-run bootstrap." >&2
+      if ! xcode-select -p >/dev/null 2>&1; then
+        echo "Xcode Command Line Tools not detected. Launching installer..." >&2
+        xcode-select --install || true
+      fi
+      echo "git is required to clone the dotfiles repository. Once the Xcode Command Line Tools are installed, re-run bootstrap." >&2
       exit 1
       ;;
     *)
