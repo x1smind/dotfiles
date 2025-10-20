@@ -789,11 +789,19 @@ install_nvm() {
 
 install_pyenv() {
   if ((DRY_RUN)); then
-    log "[dry-run] Install pyenv under $HOME/.pyenv and set 3.12.6 as global"
+    if command -v pyenv >/dev/null 2>&1 || [[ -d "$HOME/.pyenv" ]]; then
+      log "[dry-run] pyenv already present; ensure 3.12.6 installed"
+    else
+      log "[dry-run] Install pyenv under $HOME/.pyenv and set 3.12.6 as global"
+    fi
     return
   fi
   if ! command -v pyenv >/dev/null 2>&1; then
-    curl -fsSL https://pyenv.run | bash
+    if [[ -d "$HOME/.pyenv" ]]; then
+      log "Detected existing $HOME/.pyenv; reusing without reinstall."
+    else
+      curl -fsSL https://pyenv.run | bash
+    fi
   fi
   export PYENV_ROOT="$HOME/.pyenv"
   export PATH="$PYENV_ROOT/bin:$PATH"
@@ -804,12 +812,22 @@ install_pyenv() {
 
 install_rbenv() {
   if ((DRY_RUN)); then
-    log "[dry-run] Install rbenv under $HOME/.rbenv and set 3.3.5 as global"
+    if command -v rbenv >/dev/null 2>&1 || [[ -d "$HOME/.rbenv" ]]; then
+      log "[dry-run] rbenv already present; ensure 3.3.5 installed"
+    else
+      log "[dry-run] Install rbenv under $HOME/.rbenv and set 3.3.5 as global"
+    fi
     return
   fi
   if ! command -v rbenv >/dev/null 2>&1; then
-    git clone https://github.com/rbenv/rbenv.git "$HOME/.rbenv"
-    git clone https://github.com/rbenv/ruby-build.git "$HOME/.rbenv/plugins/ruby-build"
+    if [[ -d "$HOME/.rbenv" ]]; then
+      log "Detected existing $HOME/.rbenv; reusing without reinstall."
+    else
+      git clone https://github.com/rbenv/rbenv.git "$HOME/.rbenv"
+      git clone https://github.com/rbenv/ruby-build.git "$HOME/.rbenv/plugins/ruby-build"
+    fi
+  elif [[ ! -d "$HOME/.rbenv" ]]; then
+    mkdir -p "$HOME/.rbenv"
   fi
   export PATH="$HOME/.rbenv/bin:$PATH"
   eval "$(rbenv init -)"
