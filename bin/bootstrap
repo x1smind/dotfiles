@@ -574,56 +574,111 @@ install_prereqs_fedora() {
   "${SUDO_CMD[@]}" dnf install -y "${packages[@]}"
 }
 
-ensure_neovim_linux() {
-  local desired="$NEOVIM_DESIRED_VERSION"
-  local desired_tag="v${desired}"
-  local install_root="/usr/local/neovim"
+current_nvim_version() {
+  if ! command -v nvim >/dev/null 2>&1; then
+    return 1
+  fi
+  nvim --version | head -n1 | awk '{print $2}'
+}
+
+install_neovim_tarball() {
+  local url="$1"
+  local desired="$2"
+  local install_root="$3"
+  local bin_path="$4"
+
   local install_dir="${install_root}/${desired}"
   if command -v nvim >/dev/null 2>&1; then
     local current
-    current="$(nvim --version | head -n1 | awk '{print $2}')"
+    current="$(current_nvim_version)"
     if [[ "$current" == "$desired" ]]; then
-      return
+      return 0
     fi
   fi
+
   if ((DRY_RUN)); then
-    log "[dry-run] Install Neovim ${desired} under ${install_dir} and symlink /usr/local/bin/nvim"
-    return
+    log "[dry-run] Install Neovim ${desired} from ${url} under ${install_dir} and symlink ${bin_path}"
+    return 0
   fi
+
   local tmp
   tmp="$(mktemp -d)"
-  local archive="${tmp}/nvim-linux64.tar.gz"
-  local url="https://github.com/neovim/neovim/releases/download/${desired_tag}/nvim-linux64.tar.gz"
+  local archive="${tmp}/nvim.tar.gz"
   if ! curl -fsSL "$url" -o "$archive"; then
     echo "Failed to download Neovim ${desired} from ${url}" >&2
     rm -rf "$tmp"
     return 1
   fi
-  tar -xzf "$archive" -C "$tmp"
+  if ! tar -xzf "$archive" -C "$tmp"; then
+    echo "Failed to extract Neovim archive ${archive}" >&2
+    rm -rf "$tmp"
+    return 1
+  fi
+  local extracted_dir
+  extracted_dir="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d -name 'nvim-*' -print -quit)"
+  if [[ -z "$extracted_dir" ]]; then
+    echo "Could not locate extracted Neovim directory in ${tmp}" >&2
+    rm -rf "$tmp"
+    return 1
+  fi
+
   "${SUDO_CMD[@]}" rm -rf "$install_dir"
   "${SUDO_CMD[@]}" mkdir -p "$install_root"
-  "${SUDO_CMD[@]}" mv "${tmp}/nvim-linux64" "$install_dir"
-  "${SUDO_CMD[@]}" ln -sfn "${install_dir}/bin/nvim" /usr/local/bin/nvim
+  "${SUDO_CMD[@]}" mv "$extracted_dir" "$install_dir"
+  "${SUDO_CMD[@]}" ln -sfn "${install_dir}/bin/nvim" "$bin_path"
+
   rm -rf "$tmp"
-  log "Installed Neovim ${desired} -> /usr/local/bin/nvim"
+  log "Installed Neovim ${desired} -> ${bin_path}"
+}
+
+ensure_neovim_linux() {
+  local desired="$NEOVIM_DESIRED_VERSION"
+  local desired_tag="v${desired}"
+  local tarball=""
+  case "$DETECTED_ARCH" in
+    x86_64 | amd64)
+      tarball="nvim-linux-x86_64.tar.gz"
+      ;;
+    arm64 | aarch64)
+      tarball="nvim-linux-arm64.tar.gz"
+      ;;
+    *)
+      log "Skipping Neovim install: unsupported Linux architecture ${DETECTED_ARCH}"
+      return 0
+      ;;
+  esac
+  local url="https://github.com/neovim/neovim/releases/download/${desired_tag}/${tarball}"
+  install_neovim_tarball "$url" "$desired" "/usr/local/neovim" "/usr/local/bin/nvim"
+}
+
+ensure_neovim_macos() {
+  local desired="$NEOVIM_DESIRED_VERSION"
+  local desired_tag="v${desired}"
+  local tarball=""
+  case "$DETECTED_ARCH" in
+    arm64)
+      tarball="nvim-macos-arm64.tar.gz"
+      ;;
+    x86_64)
+      tarball="nvim-macos-x86_64.tar.gz"
+      ;;
+    *)
+      log "Skipping Neovim install: unsupported macOS architecture ${DETECTED_ARCH}"
+      return 0
+      ;;
+  esac
+  local url="https://github.com/neovim/neovim/releases/download/${desired_tag}/${tarball}"
+  install_neovim_tarball "$url" "$desired" "/usr/local/neovim" "/usr/local/bin/nvim"
 }
 
 ensure_neovim() {
   local os="$1"
   case "$os" in
-    debian|fedora)
+    debian | fedora)
       ensure_neovim_linux
       ;;
     macos)
-      if command -v nvim >/dev/null 2>&1; then
-        local current
-        current="$(nvim --version | head -n1 | awk '{print $2}')"
-        if [[ "$current" != "$NEOVIM_DESIRED_VERSION" ]]; then
-          log "Neovim ${current} detected (desired ${NEOVIM_DESIRED_VERSION}). Run 'brew upgrade neovim' if available."
-        fi
-      else
-        log "Neovim not found; install via 'brew install neovim'."
-      fi
+      ensure_neovim_macos
       ;;
   esac
 }
