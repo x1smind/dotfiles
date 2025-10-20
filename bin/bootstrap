@@ -529,7 +529,17 @@ install_prereqs_macos() {
   eval "$("$brew_bin" shellenv)"
   ensure_brew_shellenv_line "$brew_bin" "$TARGET_HOME/.zprofile"
   _brew_preflight "$brew_bin"
-  brew bundle --file "$brewfile"
+  if ! "$brew_bin" bundle --file "$brewfile"; then
+    local brew_prefix
+    brew_prefix="$("$brew_bin" --prefix)"
+    if [[ -d "$brew_prefix/var/homebrew" && ! -w "$brew_prefix/var/homebrew" ]]; then
+      echo "Homebrew directory $brew_prefix/var/homebrew is not writable by $(whoami)." >&2
+      echo "Adjust permissions then re-run bootstrap. Example:" >&2
+      echo "  sudo chown -R $(whoami):admin '$brew_prefix/var/homebrew'" >&2
+      echo "  sudo chmod -R g+rw '$brew_prefix/var/homebrew'" >&2
+    fi
+    return 1
+  fi
 }
 
 install_prereqs_debian() {
