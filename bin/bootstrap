@@ -42,6 +42,8 @@ REQUIRED_COMMANDS=("hostname")
 ADOPT_BACKUP_ROOT=""
 CONFLICT_ARCHIVE_ROOT=""
 CONFLICT_TIMESTAMP=""
+GIT_USER_NAME_SNAPSHOT=""
+GIT_USER_EMAIL_SNAPSHOT=""
 
 usage() {
   cat <<'EOF'
@@ -380,6 +382,33 @@ backup_conflict_path() {
     return
   fi
   archive_conflict_path "$target" "$rel"
+}
+
+capture_git_identity() {
+  if ! command -v git >/dev/null 2>&1; then
+    return
+  fi
+  GIT_USER_NAME_SNAPSHOT="$(git config --global user.name 2>/dev/null || true)"
+  GIT_USER_EMAIL_SNAPSHOT="$(git config --global user.email 2>/dev/null || true)"
+}
+
+restore_git_identity() {
+  if ! command -v git >/dev/null 2>&1; then
+    return
+  fi
+  if [[ -z "$GIT_USER_NAME_SNAPSHOT" && -z "$GIT_USER_EMAIL_SNAPSHOT" ]]; then
+    return
+  fi
+  if ((DRY_RUN)); then
+    log "[dry-run] Restore git identity (user.name='${GIT_USER_NAME_SNAPSHOT:-}' user.email='${GIT_USER_EMAIL_SNAPSHOT:-}')"
+    return
+  fi
+  if [[ -n "$GIT_USER_NAME_SNAPSHOT" ]]; then
+    git config --global user.name "$GIT_USER_NAME_SNAPSHOT"
+  fi
+  if [[ -n "$GIT_USER_EMAIL_SNAPSHOT" ]]; then
+    git config --global user.email "$GIT_USER_EMAIL_SNAPSHOT"
+  fi
 }
 
 detect_os() {
@@ -1090,6 +1119,8 @@ ensure_git_bootstrap() {
 main() {
   OS=$(detect_os)
 
+  capture_git_identity
+
   ensure_git_bootstrap "$OS"
 
   if [[ ! -d "$REPO_DIR/.git" ]]; then
@@ -1147,6 +1178,7 @@ main() {
   fi
   select_profile
   apply_host_overrides
+  restore_git_identity
   log "Enabled features: ${FEATURE_SPEC}"
 
   switch_default_shell
