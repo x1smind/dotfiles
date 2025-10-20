@@ -75,6 +75,7 @@ Exercise the one-shot installer in disposable Ubuntu and Fedora containers:
 ```bash
 make docker-build            # build/update container images (base images auto-pull)
 make docker-dry              # bootstrap --dry-run in each distro
+make docker-smoke            # dry-run + stdin bootstrap coverage in each distro
 make docker-install          # real install into temp $HOME (backs up conflicts; optional)
 make docker-down             # stop containers when done
 ```
@@ -82,6 +83,8 @@ make docker-down             # stop containers when done
 Ensure Docker Desktop (or another Docker daemon) is running first. These targets invoke `docker-ready`, which fails fast with a helpful message if the socket is unavailable.
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
+Reach for `docker-smoke` when you want the stdin bootstrap coverage inside containers; CI defaults to `docker-dry` for speed and pairs it with `docker-install` for full runs.
 
 Real-mode installs will back up any bootstrap-created dotfiles (e.g., Oh My Zsh templates) before linking and install extra build dependencies (liblzma, libyaml, etc.) so that pyenv/rbenv can compile toolchains; expect several minutes on the first run in a fresh container.
 
@@ -141,6 +144,8 @@ stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
 
 # 4) Quick smoke test (local environment)
 ./test/smoke.sh dry
+# Optional: include stdin coverage
+./test/smoke.sh dry --stdin
 
 # 5) macOS bootstrap stubs (no mac required)
 make test-brew
@@ -148,6 +153,8 @@ make test-brew
 # 6) Minimal cross-distro smoke tests (containers if available)
 make docker-build
 make docker-dry
+# Optional: include stdin coverage in containers
+make docker-smoke
 # run this when you need to validate the full install path (takes several minutes; backs up conflicts automatically)
 make docker-install
 

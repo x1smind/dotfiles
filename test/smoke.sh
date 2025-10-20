@@ -4,14 +4,31 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+usage() {
+  echo "Usage: $0 [dry|real] [--stdin]" >&2
+}
+
 MODE="${1:-dry}"
+WITH_STDIN=0
+
 case "$MODE" in
   dry | real) ;;
   *)
-    echo "Usage: $0 [dry|real]" >&2
+    usage
     exit 2
     ;;
 esac
+
+if [[ "${2:-}" == "--stdin" ]]; then
+  WITH_STDIN=1
+elif [[ -n "${2:-}" ]]; then
+  usage
+  exit 2
+fi
+
+if [[ "${SMOKE_INCLUDE_STDIN:-}" == "1" ]]; then
+  WITH_STDIN=1
+fi
 
 created_target=0
 if [[ -z "${DOTFILES_TARGET:-}" ]]; then
@@ -40,13 +57,15 @@ fi
 echo ">> Running ${bootstrap_cmd[*]}"
 "${bootstrap_cmd[@]}"
 
-if [[ "$MODE" == "dry" ]]; then
+if [[ "$MODE" == "dry" && $WITH_STDIN -eq 1 ]]; then
   echo ">> Running stdin bootstrap simulation"
   env DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
     DOTFILES_TARGET="${DOTFILES_TARGET}" \
     REPO_DIR="${REPO_DIR}" \
     bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" <"${REPO_DIR}/bin/bootstrap"
+fi
 
+if [[ "$MODE" == "dry" ]]; then
   echo ">> Running minimal feature bootstrap (DOTFILES_FEATURES=core)"
   core_target="$(mktemp -d)"
   env DOTFILES_FEATURES=core \
