@@ -30,6 +30,8 @@ git clone https://github.com/x1smind/dotfiles ~/.dotfiles
 ~/.dotfiles/bin/bootstrap
 ```
 
+When run from an interactive terminal, the bootstrapper now offers a short wizard to choose your profile (`work` or `personal`) and toggle optional language managers (`nvm`, `pyenv`, `rbenv`). Set `DOTFILES_PROFILE`/`DOTFILES_FEATURES` or pass `--no-prompt` to skip the questions (CI, scripts, or unattended installs).
+
 ### Safe dry-run
 
 Never test against your real `$HOME`. Point the bootstrapper at a temp directory and enable dry-run mode:
@@ -37,7 +39,7 @@ Never test against your real `$HOME`. Point the bootstrapper at a temp directory
 ```bash
 export DOTFILES_TARGET="$(mktemp -d)"
 export DOTFILES_PROFILE=personal
-~/.dotfiles/bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+~/.dotfiles/bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
 ```
 
 ## Testing

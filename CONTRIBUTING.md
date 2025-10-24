@@ -59,7 +59,9 @@ cd ~/.dotfiles
 # never test against your real $HOME
 export DOTFILES_TARGET="$(mktemp -d)"
 export DOTFILES_PROFILE=personal
-bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
+
+If you run the installer in an interactive terminal, it now walks through a short wizard (profile selection + optional `nvm`/`pyenv`/`rbenv`). Pre-set `DOTFILES_PROFILE`/`DOTFILES_FEATURES` or pass `--no-prompt` whenever you need a non-interactive run.
 ```
 
 ### Quick edit loop
@@ -139,7 +141,7 @@ export DOTFILES_TARGET="$(mktemp -d)"
 bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
 
 # 2b) Minimal feature dry-run (skip heavy runtimes)
-DOTFILES_FEATURES=core bin/bootstrap --dry-run --target "$DOTFILES_TARGET"
+DOTFILES_FEATURES=core bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
 
 # 3) Stow simulation
 stow -n -v -d packages -t "$DOTFILES_TARGET" $(ls packages) || true
