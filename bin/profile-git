@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: profile-git --file PATH --email ADDRESS [--name NAME] [--sign]
+  --file PATH     Target gitconfig include file to scaffold (required).
+  --email ADDRESS Email to write under [user] (required).
+  --name NAME     Optional display name to seed under [user].
+  --sign          Enable commit signing (defaults to false).
+  --no-sign       Disable commit signing (default).
+EOF
+}
+
+TARGET_FILE=""
+USER_EMAIL=""
+USER_NAME=""
+GPG_SIGN="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file)
+      TARGET_FILE="${2:-}"
+      shift
+      ;;
+    --email)
+      USER_EMAIL="${2:-}"
+      shift
+      ;;
+    --name)
+      USER_NAME="${2:-}"
+      shift
+      ;;
+    --sign)
+      GPG_SIGN="true"
+      ;;
+    --no-sign)
+      GPG_SIGN="false"
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown flag: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$TARGET_FILE" || -z "$USER_EMAIL" ]]; then
+  usage >&2
+  exit 2
+fi
+
+target_dir="$(dirname "$TARGET_FILE")"
+mkdir -p "$target_dir"
+
+if [[ -f "$TARGET_FILE" ]]; then
+  exit 0
+fi
+
+{
+  printf '[user]\n'
+  if [[ -n "$USER_NAME" ]]; then
+    printf '    name = %s\n' "$USER_NAME"
+  fi
+  printf '    email = %s\n' "$USER_EMAIL"
+  printf '[commit]\n'
+  printf '    gpgsign = %s\n' "$GPG_SIGN"
+} >"$TARGET_FILE"
+
+printf 'Scaffolded %s\n' "$TARGET_FILE"
