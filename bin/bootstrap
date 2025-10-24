@@ -933,7 +933,7 @@ EOF
 
 install_nvm() {
   if ((DRY_RUN)); then
-    log "[dry-run] Install nvm under $HOME/.nvm and ensure LTS default"
+    log "[dry-run] Install nvm under $HOME/.nvm, ensure LTS default, and enable corepack"
     return
   fi
   if [[ ! -d "$HOME/.nvm" ]]; then
@@ -946,6 +946,10 @@ install_nvm() {
   [[ -s "$HOME/.nvm/nvm.sh" ]] && . "$HOME/.nvm/nvm.sh"
   nvm install --lts >/dev/null 2>&1 || true
   nvm alias default 'lts/*'
+  nvm use default >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
+  if command -v corepack >/dev/null 2>&1; then
+    corepack enable >/dev/null 2>&1 || true
+  fi
 }
 
 install_pyenv() {
