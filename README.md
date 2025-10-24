@@ -160,4 +160,4 @@ Running `~/.dotfiles/bin/bootstrap --dry-run --target "$(mktemp -d)" --profile p
 
 ## Releases
 
-The current release is **v0.4.0**. See [CHANGELOG.md](CHANGELOG.md) for a complete history.
+The current release is **v0.5.0**. See [CHANGELOG.md](CHANGELOG.md) for a complete history.

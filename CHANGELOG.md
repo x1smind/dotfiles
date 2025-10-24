@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.5.0] - 2025-10-24
+
+### Added
+- Bootstrap wizard for interactive profile and feature selection, with a `--no-prompt` escape hatch for CI and scripts.
+- `bin/profile-git` helper shared across work/personal overlays, plus documentation on customising profile emails, names, and signing defaults.
+- Telescope file browser plugin and `<leader>fb` shortcut for quick navigation alongside the existing live-grep/file-finder maps.
+
+### Changed
+- Docker smoke workflow now caches BuildKit layers per distro, reusing images across runs while the local `make` harness skips redundant rebuilds.
+- `nvm` provisioning enables Corepack after setting the default LTS release so `pnpm`/`yarn` are available immediately.
+
+### Fixed
+- Linux fallback package lists in the bootstrapper were brought back in sync with the repository manifests.
+- Smoke harness logging trimmed and streamlined for clearer output during CI runs.
+
 ## [v0.4.0] - 2025-10-20
 
 ### Added
