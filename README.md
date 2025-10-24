@@ -49,6 +49,7 @@ Use the Docker harness to exercise the one-shot installer inside disposable Ubun
 ```bash
 make docker-build            # build/update the container images (auto-pulls bases)
 make docker-dry              # run bootstrap --dry-run against a temp $HOME
+make docker-smoke            # same as docker-dry but also exercises stdin bootstrap mode
 make docker-install          # run the real installer against a temp $HOME (backs up bootstrap-created dotfiles before linking)
 make docker-down             # stop containers when finished
 ```
@@ -56,6 +57,8 @@ make docker-down             # stop containers when finished
 Docker Desktop (or an equivalent daemon) must be running; these targets now fail-fast with a friendly message if the socket is unavailable.
 
 Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
+
+Use `docker-smoke` when you need the extra stdin coverage; CI defaults to `docker-dry` for speed and `docker-install` for full installs.
 
 The first `make docker-install` run installs extra build dependencies (liblzma, libyaml, etc.) and compiles Python & Ruby, so expect several minutes on a cold container.
 

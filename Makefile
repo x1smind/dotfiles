@@ -9,7 +9,7 @@ define RUN_SMOKE
 		-w /workspace/dotfiles \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \
-		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)'
+		$(1) bash -lc 'set -euo pipefail; ./test/smoke.sh $(2)$(if $(3), $(3))'
 endef
 
 .PHONY: docker-ready docker-build docker-smoke docker-smoke-% docker-dry docker-dry-% docker-install docker-install-% docker-shell-% docker-dev-shell docker-dev-shell-rebuild docker-dev-shell-internal docker-down docker-clean test-brew
@@ -32,12 +32,12 @@ docker-build: docker-ready
 docker-smoke: docker-ready $(addprefix docker-smoke-,$(DOCKER_SERVICES))
 
 docker-smoke-%: docker-ready
-	$(call RUN_SMOKE,$*,dry)
+	$(call RUN_SMOKE,$*,dry,--stdin)
 
 docker-dry: docker-ready $(addprefix docker-dry-,$(DOCKER_SERVICES))
 
 docker-dry-%: docker-ready
-	$(call RUN_SMOKE,$*,dry)
+	$(call RUN_SMOKE,$*,dry,)
 
 docker-install: docker-ready $(addprefix docker-install-,$(DOCKER_SERVICES))
 
