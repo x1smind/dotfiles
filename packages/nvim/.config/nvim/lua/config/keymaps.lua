@@ -13,3 +13,11 @@ end, { desc = "Find files" })
 map("n", "<leader>fg", function()
   require("telescope.builtin").live_grep()
 end, { desc = "Live grep" })
+
+map("n", "<leader>fb", function()
+  require("telescope").extensions.file_browser.file_browser({
+    path = vim.fn.expand("%:p:h"),
+    hidden = true,
+    respect_gitignore = false,
+  })
+end, { desc = "File browser" })
