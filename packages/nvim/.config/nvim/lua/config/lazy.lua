@@ -66,6 +66,7 @@ require("lazy").setup({
         "nvim-telescope/telescope-fzf-native.nvim",
         build = "make",
       },
+      "nvim-telescope/telescope-file-browser.nvim",
     },
     config = function()
       require("telescope").setup({
@@ -80,6 +81,7 @@ require("lazy").setup({
         },
       })
       pcall(require("telescope").load_extension, "fzf")
+      pcall(require("telescope").load_extension, "file_browser")
     end,
   },
   {
