@@ -31,14 +31,31 @@ jobs:
       - name: macOS bootstrap stubs
         if: steps.docker_check.outputs.available == 'true'
         run: make test-brew
-      - name: Build ${{ matrix.service }} image
+      - name: Set up Docker Buildx
         if: steps.docker_check.outputs.available == 'true'
-        run: make DOCKER_SERVICES=${{ matrix.service }} docker-build
+        uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.service }} image (cached)
+        if: steps.docker_check.outputs.available == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.${{ matrix.service }}
+          tags: dotfiles-${{ matrix.service }}:latest
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=docker-smoke-${{ matrix.service }}
+          cache-to: type=gha,scope=docker-smoke-${{ matrix.service }},mode=max
       - name: Dry-run bootstrap in ${{ matrix.service }}
         if: steps.docker_check.outputs.available == 'true'
+        env:
+          DOCKER_RUN_BUILD_FLAG: ""
+          DOCKER_RUN_PULL_FLAG: ""
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-dry
       - name: Install bootstrap in ${{ matrix.service }}
         if: steps.docker_check.outputs.available == 'true'
+        env:
+          DOCKER_RUN_BUILD_FLAG: ""
+          DOCKER_RUN_PULL_FLAG: ""
         run: make DOCKER_SERVICES=${{ matrix.service }} docker-install
       - name: Tear down ${{ matrix.service }} containers
         if: steps.docker_check.outputs.available == 'true' && always()

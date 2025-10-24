@@ -2,10 +2,12 @@ DOCKER ?= $(shell command -v docker 2>/dev/null || echo /usr/local/bin/docker)
 DOCKER_COMPOSE ?= $(strip $(shell if $(DOCKER) compose version >/dev/null 2>&1; then echo "$(DOCKER) compose"; elif command -v docker-compose >/dev/null 2>&1; then command -v docker-compose; fi))
 COMPOSE_FILE := docker/docker-compose.yml
 DOCKER_SERVICES := ubuntu fedora
+DOCKER_RUN_PULL_FLAG ?= --pull always
+DOCKER_RUN_BUILD_FLAG ?= --build
 
 define RUN_SMOKE
 	@echo ">> Running smoke ($(2)) in $(1)"
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --pull always --build --rm \
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run $(DOCKER_RUN_PULL_FLAG) $(DOCKER_RUN_BUILD_FLAG) --rm \
 		-w /workspace/dotfiles \
 		-e DOTFILES_PROFILE \
 		-e DOTFILES_TARGET \

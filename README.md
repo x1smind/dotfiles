@@ -62,7 +62,7 @@ Use `docker-smoke` when you need the extra stdin coverage; CI defaults to `docke
 
 The first `make docker-install` run installs extra build dependencies (liblzma, libyaml, etc.) and compiles Python & Ruby, so expect several minutes on a cold container.
 
-GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora. A dedicated macOS runner (`.github/workflows/macos-smoke.yml`) executes the stub harness on PRs targeting `main`/`release/**` and performs a weekly macOS 14 dry-run of `bin/bootstrap`.
+GitHub Actions runs the same `docker-build`, `docker-dry`, and `docker-install` targets (see `.github/workflows/docker-smoke.yml`) to keep the one-shot installer green on Ubuntu and Fedora. A dedicated macOS runner (`.github/workflows/macos-smoke.yml`) executes the stub harness on PRs targeting `main`/`release/**` and performs a weekly macOS 14 dry-run of `bin/bootstrap`. CI reuses BuildKit caches per distro (`docker-smoke-ubuntu`, `docker-smoke-fedora`), so repeat runs stay fast; touch the corresponding `docker/Dockerfile.*` or bump a cache busting ARG when you need a fresh image.
 
 ### macOS bootstrap checks
 
