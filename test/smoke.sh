@@ -49,9 +49,9 @@ echo ">> Mode: ${MODE}"
 echo ">> Using DOTFILES_PROFILE=${DOTFILES_PROFILE}"
 echo ">> Using DOTFILES_TARGET=${DOTFILES_TARGET}"
 
-bootstrap_cmd=("${REPO_DIR}/bin/bootstrap" "--target" "${DOTFILES_TARGET}" "--profile" "${DOTFILES_PROFILE}")
+bootstrap_cmd=("${REPO_DIR}/bin/bootstrap" "--no-prompt" "--target" "${DOTFILES_TARGET}" "--profile" "${DOTFILES_PROFILE}")
 if [[ "$MODE" == "dry" ]]; then
-  bootstrap_cmd=("${REPO_DIR}/bin/bootstrap" "--dry-run" "--target" "${DOTFILES_TARGET}" "--profile" "${DOTFILES_PROFILE}")
+  bootstrap_cmd=("${REPO_DIR}/bin/bootstrap" "--no-prompt" "--dry-run" "--target" "${DOTFILES_TARGET}" "--profile" "${DOTFILES_PROFILE}")
 fi
 
 echo ">> Running ${bootstrap_cmd[*]}"
@@ -62,7 +62,7 @@ if [[ "$MODE" == "dry" && $WITH_STDIN -eq 1 ]]; then
   env DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
     DOTFILES_TARGET="${DOTFILES_TARGET}" \
     REPO_DIR="${REPO_DIR}" \
-    bash -s -- --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" <"${REPO_DIR}/bin/bootstrap"
+    bash -s -- --no-prompt --dry-run --target "${DOTFILES_TARGET}" --profile "${DOTFILES_PROFILE}" <"${REPO_DIR}/bin/bootstrap"
 fi
 
 if [[ "$MODE" == "dry" ]]; then
@@ -71,7 +71,7 @@ if [[ "$MODE" == "dry" ]]; then
   env DOTFILES_FEATURES=core \
     DOTFILES_TARGET="${core_target}" \
     DOTFILES_PROFILE="${DOTFILES_PROFILE}" \
-    "${REPO_DIR}/bin/bootstrap" --dry-run --target "${core_target}" --profile "${DOTFILES_PROFILE}"
+    "${REPO_DIR}/bin/bootstrap" --no-prompt --dry-run --target "${core_target}" --profile "${DOTFILES_PROFILE}"
   rm -rf "${core_target}"
 fi
 

@@ -44,6 +44,10 @@ CONFLICT_ARCHIVE_ROOT=""
 CONFLICT_TIMESTAMP=""
 GIT_USER_NAME_SNAPSHOT=""
 GIT_USER_EMAIL_SNAPSHOT=""
+FEATURES_FROM_ENV=0
+if [[ ${DOTFILES_FEATURES+set} == set ]]; then
+  FEATURES_FROM_ENV=1
+fi
 
 usage() {
   cat <<'EOF'
@@ -52,8 +56,11 @@ Usage: bootstrap [--dry-run] [--target DIR] [--profile work|personal] [--adopt-e
   --target DIR      Override DOTFILES_TARGET (defaults to $HOME).
   --profile         Pre-select DOTFILES_PROFILE without prompt.
   --adopt-existing  Move conflicting dotfiles into the repo, preserving defaults under .bootstrap-adopted.
+  --no-prompt       Skip interactive wizards (non-interactive fallback).
 EOF
 }
+
+NO_PROMPT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -76,6 +83,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --adopt-existing)
       ADOPT_EXISTING=1
+      ;;
+    --no-prompt)
+      NO_PROMPT=1
       ;;
     -h | --help)
       usage
@@ -162,28 +172,51 @@ DEFAULT_DNF_PACKAGES=(
 
 NEOVIM_DESIRED_VERSION="0.11.4"
 
-FEATURE_SPEC="${DOTFILES_FEATURES:-core,nvm,pyenv,rbenv}"
+DEFAULT_FEATURE_SPEC="core,nvm,pyenv,rbenv"
+declare -a DOTFILES_FEATURE_LIST=()
+
+add_feature() {
+  local name="$1"
+  local existing
+  for existing in "${DOTFILES_FEATURE_LIST[@]-}"; do
+    if [[ "$existing" == "$name" ]]; then
+      return
+    fi
+  done
+  DOTFILES_FEATURE_LIST+=("$name")
+}
+
+set_feature_list_from_spec() {
+  local spec="$1"
+  DOTFILES_FEATURE_LIST=()
+  if [[ -z "$spec" ]]; then
+    return
+  fi
+  IFS=',' read -r -a _dotfiles_feature_raw <<<"$spec"
+  for feature in "${_dotfiles_feature_raw[@]}"; do
+    [[ -n "$feature" ]] || continue
+    add_feature "$feature"
+  done
+  unset _dotfiles_feature_raw
+}
+
+feature_spec_from_list() {
+  local IFS=','
+  printf '%s' "${DOTFILES_FEATURE_LIST[*]}"
+}
+
+FEATURE_SPEC="${DOTFILES_FEATURES:-$DEFAULT_FEATURE_SPEC}"
 FEATURE_SPEC="${FEATURE_SPEC//[[:space:]]/}"
 if [[ "$FEATURE_SPEC" == "all" ]]; then
-  FEATURE_SPEC="core,nvm,pyenv,rbenv"
+  FEATURE_SPEC="$DEFAULT_FEATURE_SPEC"
 fi
 if [[ -z "$FEATURE_SPEC" ]]; then
   FEATURE_SPEC="core"
 fi
-IFS=',' read -r -a _dotfiles_feature_raw <<<"$FEATURE_SPEC"
-DOTFILES_FEATURE_LIST=()
-for feature in "${_dotfiles_feature_raw[@]}"; do
-  [[ -n "$feature" ]] || continue
-  if ((${#DOTFILES_FEATURE_LIST[@]})); then
-    for existing in "${DOTFILES_FEATURE_LIST[@]}"; do
-      if [[ "$existing" == "$feature" ]]; then
-        continue 2
-      fi
-    done
-  fi
-  DOTFILES_FEATURE_LIST+=("$feature")
-done
-unset _dotfiles_feature_raw
+set_feature_list_from_spec "$FEATURE_SPEC"
+FEATURE_SPEC="$(feature_spec_from_list)"
+DOTFILES_FEATURES="$FEATURE_SPEC"
+export DOTFILES_FEATURES
 
 feature_enabled() {
   local name="$1"
@@ -197,6 +230,93 @@ feature_enabled() {
     fi
   done
   return 1
+}
+
+wizard_enabled() {
+  if ((NO_PROMPT)); then
+    return 1
+  fi
+  if ! [[ -t 0 ]]; then
+    return 1
+  fi
+  if ((TEST_MODE_ACTIVE)); then
+    return 1
+  fi
+  return 0
+}
+
+prompt_profile_selection() {
+  local choice
+  printf "\nDotfiles profile setup:\n" >&2
+  printf "  [1] work\n" >&2
+  printf "  [2] personal (default)\n" >&2
+  read -r -p "Select profile > " choice || true
+  case "${choice:-2}" in
+    1) DOTFILES_PROFILE="work" ;;
+    2|'') DOTFILES_PROFILE="personal" ;;
+    *) DOTFILES_PROFILE="personal" ;;
+  esac
+}
+
+prompt_feature_selection() {
+  local modules=(nvm pyenv rbenv)
+  local answer
+  DOTFILES_FEATURE_LIST=("core")
+  printf "\nOptional modules (Y/n):\n" >&2
+  for module in "${modules[@]}"; do
+    while true; do
+      read -r -p "  Enable ${module}? [Y/n] " answer || true
+      case "${answer:-Y}" in
+        ''|Y|y)
+          add_feature "$module"
+          break
+          ;;
+        N|n)
+          break
+          ;;
+        *)
+          printf "  Please answer Y or N.\n" >&2
+          ;;
+      esac
+    done
+  done
+  FEATURE_SPEC="$(feature_spec_from_list)"
+  DOTFILES_FEATURES="$FEATURE_SPEC"
+  export DOTFILES_FEATURES
+}
+
+maybe_run_wizard() {
+  local profile_explicit=0
+  if [[ ${DOTFILES_PROFILE+set} == set ]]; then
+    profile_explicit=1
+  fi
+
+  if ! wizard_enabled; then
+    if [[ -z "${DOTFILES_PROFILE:-}" ]]; then
+      DOTFILES_PROFILE="personal"
+    fi
+    FEATURE_SPEC="$(feature_spec_from_list)"
+    DOTFILES_FEATURES="$FEATURE_SPEC"
+    export DOTFILES_FEATURES
+    return
+  fi
+
+  printf "\nDotfiles bootstrap wizard\n" >&2
+  printf "Press Ctrl+C any time to abort.\n\n" >&2
+
+  if (( ! profile_explicit )); then
+    prompt_profile_selection
+  elif [[ -z "${DOTFILES_PROFILE:-}" ]]; then
+    DOTFILES_PROFILE="personal"
+  fi
+
+  if (( ! FEATURES_FROM_ENV )); then
+    prompt_feature_selection
+  else
+    FEATURE_SPEC="$(feature_spec_from_list)"
+    DOTFILES_FEATURES="$FEATURE_SPEC"
+    export DOTFILES_FEATURES
+  fi
 }
 
 discover_stow_packages() {
@@ -1002,13 +1122,7 @@ stow_dotfiles() {
 
 select_profile() {
   if [[ -z "${DOTFILES_PROFILE:-}" ]]; then
-    echo "Select profile: [1] work  [2] personal"
-    read -rp "> " choice
-    case "$choice" in
-      1) DOTFILES_PROFILE=work ;;
-      2) DOTFILES_PROFILE=personal ;;
-      *) DOTFILES_PROFILE=personal ;;
-    esac
+    DOTFILES_PROFILE="personal"
   fi
   export DOTFILES_PROFILE
   local f="$REPO_DIR/profiles/${DOTFILES_PROFILE}/zshrc.profile.zsh"
@@ -1136,6 +1250,8 @@ main() {
       fi
     fi
   fi
+
+  maybe_run_wizard
 
   case "$OS" in
     macos) install_prereqs_macos ;;
