@@ -60,9 +60,9 @@ cd ~/.dotfiles
 export DOTFILES_TARGET="$(mktemp -d)"
 export DOTFILES_PROFILE=personal
 bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
+```
 
 If you run the installer in an interactive terminal, it now walks through a short wizard (profile selection + optional `nvm`/`pyenv`/`rbenv`). Pre-set `DOTFILES_PROFILE`/`DOTFILES_FEATURES` or pass `--no-prompt` whenever you need a non-interactive run.
-```
 
 ### Quick edit loop
 

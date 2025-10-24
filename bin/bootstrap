@@ -44,6 +44,10 @@ CONFLICT_ARCHIVE_ROOT=""
 CONFLICT_TIMESTAMP=""
 GIT_USER_NAME_SNAPSHOT=""
 GIT_USER_EMAIL_SNAPSHOT=""
+FEATURES_FROM_ENV=0
+if [[ ${DOTFILES_FEATURES+set} == set ]]; then
+  FEATURES_FROM_ENV=1
+fi
 
 usage() {
   cat <<'EOF'
@@ -174,6 +178,9 @@ DOTFILES_FEATURE_LIST=()
 add_feature() {
   local name="$1"
   local existing
+  if [[ ${DOTFILES_FEATURE_LIST+set} != set ]]; then
+    DOTFILES_FEATURE_LIST=()
+  fi
   for existing in "${DOTFILES_FEATURE_LIST[@]}"; do
     if [[ "$existing" == "$name" ]]; then
       return
@@ -283,12 +290,8 @@ prompt_feature_selection() {
 
 maybe_run_wizard() {
   local profile_explicit=0
-  local features_explicit=0
   if [[ ${DOTFILES_PROFILE+set} == set ]]; then
     profile_explicit=1
-  fi
-  if [[ ${DOTFILES_FEATURES+set} == set ]]; then
-    features_explicit=1
   fi
 
   if ! wizard_enabled; then
@@ -310,7 +313,7 @@ maybe_run_wizard() {
     DOTFILES_PROFILE="personal"
   fi
 
-  if (( ! features_explicit )); then
+  if (( ! FEATURES_FROM_ENV )); then
     prompt_feature_selection
   else
     FEATURE_SPEC="$(feature_spec_from_list)"
