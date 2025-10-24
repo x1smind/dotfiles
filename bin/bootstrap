@@ -173,15 +173,12 @@ DEFAULT_DNF_PACKAGES=(
 NEOVIM_DESIRED_VERSION="0.11.4"
 
 DEFAULT_FEATURE_SPEC="core,nvm,pyenv,rbenv"
-DOTFILES_FEATURE_LIST=()
+declare -a DOTFILES_FEATURE_LIST=()
 
 add_feature() {
   local name="$1"
   local existing
-  if [[ ${DOTFILES_FEATURE_LIST+set} != set ]]; then
-    DOTFILES_FEATURE_LIST=()
-  fi
-  for existing in "${DOTFILES_FEATURE_LIST[@]}"; do
+  for existing in "${DOTFILES_FEATURE_LIST[@]-}"; do
     if [[ "$existing" == "$name" ]]; then
       return
     fi
