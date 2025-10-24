@@ -86,6 +86,8 @@ Override the profile per run with `DOTFILES_PROFILE=work make docker-dry`.
 
 Reach for `docker-smoke` when you want the stdin bootstrap coverage inside containers; CI defaults to `docker-dry` for speed and pairs it with `docker-install` for full runs.
 
+CI builds reuse BuildKit caches scoped to each distro (`docker-smoke-ubuntu`, `docker-smoke-fedora`). Touch the matching `docker/Dockerfile.*` (or adjust a cache-busting ARG) when you need to invalidate the image layers in GitHub Actions.
+
 Real-mode installs will back up any bootstrap-created dotfiles (e.g., Oh My Zsh templates) before linking and install extra build dependencies (liblzma, libyaml, etc.) so that pyenv/rbenv can compile toolchains; expect several minutes on the first run in a fresh container.
 
 Need an interactive Linux shell that mirrors CI? Use `make docker-dev-shell`. Docker caches this image, so rebuild it after changing `docker/Dockerfile.dev` or `docker/dev-entrypoint.sh` with `docker compose -f docker/docker-compose.yml build --no-cache dev`. (The `make docker-build` target only touches the Ubuntu/Fedora smoke images.) GitHub and Codex configs are mounted read/write so you can refresh tokens inside the container—those updates persist back to the host.
@@ -118,7 +120,7 @@ Need an interactive Linux shell that mirrors CI? Use `make docker-dev-shell`. Do
   Always state where you tested (`macOS`, `Ubuntu`, `Fedora`, etc.).  
 
 * **Add/Update tests** in `test/` for new logic or flags.  
-* **CI awareness**: GitHub Actions runs Shellcheck and the Docker Smoke matrix (`ubuntu`, `fedora`). Verify `./test/smoke.sh dry` and `make docker-dry`/`make docker-install` locally before opening a PR.
+* **CI awareness**: GitHub Actions runs Shellcheck and the Docker Smoke matrix (`ubuntu`, `fedora`). Verify `./test/smoke.sh dry` and `make docker-dry`/`make docker-install` locally before opening a PR. BuildKit caches keep the docker-smoke images warm; editing the matching `docker/Dockerfile.*` (or tweaking a cache-busting ARG) refreshes the layers automatically.
 
 * **Note:** Agents auto-generate these commit messages when changes are staged.
   Human contributors should follow the same convention when committing manually.
