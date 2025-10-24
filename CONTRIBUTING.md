@@ -64,11 +64,14 @@ bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
 
 If you run the installer in an interactive terminal, it now walks through a short wizard (profile selection + optional `nvm`/`pyenv`/`rbenv`). Pre-set `DOTFILES_PROFILE`/`DOTFILES_FEATURES` or pass `--no-prompt` whenever you need a non-interactive run.
 
+Profile-specific git includes (`~/.gitconfig.work`, `~/.gitconfig.personal`) are scaffolded by `bin/profile-git`. Export `WORK_GIT_EMAIL` / `PERSONAL_GIT_EMAIL` (and optional `*_GIT_NAME`, `WORK_GIT_SIGN=false`) before bootstrapping if you want to seed custom values.
+
 ### Quick edit loop
 
 * Make changes under `packages/*` or `profiles/*`.
 * Use `stow -d packages -t "$DOTFILES_TARGET" <package>` to check link plans.
 * Add minimal fixtures to `test/` when behavior changes.
+* Run `~/.dotfiles/bin/keys-setup` to generate SSH/GPG credentials after bootstrap; it prints the public keys and GitHub submission links.
 
 ### Docker harness
 

@@ -9,11 +9,20 @@ mkdir -p "$WORKSPACE_DIR" >/dev/null 2>&1 || true
 
 # Git overrides
 profile_git="$HOME/.gitconfig.work"
-if [[ ! -f "$profile_git" ]]; then
-  cat <<'EOT' > "$profile_git"
-[user]
-    email = you@work.example
-[commit]
-    gpgsign = true
-EOT
+profile_git_helper="${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/profile-git"
+if [[ -x "$profile_git_helper" ]]; then
+  work_git_email="${WORK_GIT_EMAIL:-you@work.example}"
+  work_git_name="${WORK_GIT_NAME:-}"
+  work_git_sign="${WORK_GIT_SIGN:-true}"
+  profile_args=(--file "$profile_git" --email "$work_git_email")
+  if [[ -n "$work_git_name" ]]; then
+    profile_args+=(--name "$work_git_name")
+  fi
+  if [[ "$work_git_sign" == "true" ]]; then
+    profile_args+=(--sign)
+  else
+    profile_args+=(--no-sign)
+  fi
+  "$profile_git_helper" "${profile_args[@]}"
 fi
+unset profile_git_helper work_git_email work_git_name work_git_sign profile_args

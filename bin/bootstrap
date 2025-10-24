@@ -1251,6 +1251,10 @@ main() {
     fi
   fi
 
+  if [[ -z "${DOTFILES_ROOT:-}" ]]; then
+    export DOTFILES_ROOT="$REPO_DIR"
+  fi
+
   maybe_run_wizard
 
   case "$OS" in

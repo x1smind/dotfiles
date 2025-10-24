@@ -90,6 +90,12 @@ Select with `DOTFILES_PROFILE` env var or interactive prompt on first run:
 - `work`
 - `personal`
 
+Each profile scaffolds a dedicated git include (e.g. `~/.gitconfig.work`) via `bin/profile-git`. Override the seeded metadata with `WORK_GIT_EMAIL` / `PERSONAL_GIT_EMAIL` (and optional `*_GIT_NAME`) before launching the shell, or edit the generated file after the first run. Work profiles enable commit signing by default; set `WORK_GIT_SIGN=false` if your host should skip it.
+
+### SSH & GPG helpers
+
+Run `~/.dotfiles/bin/keys-setup` after bootstrapping to generate SSH and GPG keys (or export existing ones). The script prints the public material and links to the GitHub settings screens so you can register the credentials immediately.
+
 ## Feature toggles
 
 Control optional installers with the `DOTFILES_FEATURES` environment variable (comma-separated).  
