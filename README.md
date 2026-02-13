@@ -5,7 +5,7 @@ Cross‑platform dotfiles + bootstrap for **macOS** and **Linux (Debian/Ubuntu f
 - Shell: zsh + oh‑my‑zsh + **powerlevel10k**
 - Fonts: **Hack Nerd Font** (primary) and Meslo Nerd (secondary)
 - Managers: **nvm**, **pyenv**, **rbenv**
-- Editors: **Neovim 0.11.4 (Lazy.nvim layout)**, `.vimrc` for vim compatibility
+- Editors: **Neovim 0.11.6 (Lazy.nvim layout)**, `.vimrc` for vim compatibility
 - Tmux: `.tmux.conf` with TPM bootstrap
 - Per‑profile overrides: **work** / **personal**
 - Per‑host overrides

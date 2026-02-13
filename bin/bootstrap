@@ -170,7 +170,7 @@ DEFAULT_DNF_PACKAGES=(
   unzip
 )
 
-NEOVIM_DESIRED_VERSION="0.11.4"
+NEOVIM_DESIRED_VERSION="0.11.6"
 
 DEFAULT_FEATURE_SPEC="core,nvm,pyenv,rbenv"
 declare -a DOTFILES_FEATURE_LIST=()
@@ -941,7 +941,7 @@ install_nvm() {
   if [[ ! -d "$HOME/.nvm" ]]; then
     (
       export PROFILE=/dev/null
-      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
     )
   fi
   # shellcheck disable=SC1090,SC1091
@@ -957,9 +957,9 @@ install_nvm() {
 install_pyenv() {
   if ((DRY_RUN)); then
     if command -v pyenv >/dev/null 2>&1 || [[ -d "$HOME/.pyenv" ]]; then
-      log "[dry-run] pyenv already present; ensure 3.12.6 installed"
+      log "[dry-run] pyenv already present; ensure 3.12.12 installed"
     else
-      log "[dry-run] Install pyenv under $HOME/.pyenv and set 3.12.6 as global"
+      log "[dry-run] Install pyenv under $HOME/.pyenv and set 3.12.12 as global"
     fi
     return
   fi
@@ -973,16 +973,16 @@ install_pyenv() {
   export PYENV_ROOT="$HOME/.pyenv"
   export PATH="$PYENV_ROOT/bin:$PATH"
   eval "$(pyenv init -)"
-  pyenv install -s 3.12.6
-  pyenv global 3.12.6
+  pyenv install -s 3.12.12
+  pyenv global 3.12.12
 }
 
 install_rbenv() {
   if ((DRY_RUN)); then
     if command -v rbenv >/dev/null 2>&1 || [[ -d "$HOME/.rbenv" ]]; then
-      log "[dry-run] rbenv already present; ensure 3.3.5 installed"
+      log "[dry-run] rbenv already present; ensure 3.4.8 installed"
     else
-      log "[dry-run] Install rbenv under $HOME/.rbenv and set 3.3.5 as global"
+      log "[dry-run] Install rbenv under $HOME/.rbenv and set 3.4.8 as global"
     fi
     return
   fi
@@ -998,8 +998,8 @@ install_rbenv() {
   fi
   export PATH="$HOME/.rbenv/bin:$PATH"
   eval "$(rbenv init -)"
-  rbenv install -s 3.3.5
-  rbenv global 3.3.5
+  rbenv install -s 3.4.8
+  rbenv global 3.4.8
 }
 
 install_tpm() {
