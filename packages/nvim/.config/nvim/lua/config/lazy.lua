@@ -49,12 +49,19 @@ require("lazy").setup({
   },
   {
     "nvim-treesitter/nvim-treesitter",
+    lazy = false, -- plugin does not support lazy-loading (see nvim-treesitter wiki)
     build = ":TSUpdate",
     lazy = false,
     config = function()
-      -- Require main module first so the plugin is on rtp before configs submodule.
-      require("nvim-treesitter")
-      require("nvim-treesitter.configs").setup({
+      local ok, configs = pcall(require, "nvim-treesitter.configs")
+      if not ok or not configs then
+        vim.notify(
+          "nvim-treesitter: plugin not loaded yet. Run :Lazy sync, then restart Neovim. Install tree-sitter CLI for :TSUpdate (e.g. brew install tree-sitter).",
+          vim.log.levels.WARN
+        )
+        return
+      end
+      configs.setup({
         highlight = { enable = true },
         indent = { enable = true },
         ensure_installed = { "lua", "bash", "python", "json", "yaml" },
