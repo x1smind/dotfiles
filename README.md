@@ -42,6 +42,13 @@ export DOTFILES_PROFILE=personal
 ~/.dotfiles/bin/bootstrap --no-prompt --dry-run --target "$DOTFILES_TARGET"
 ```
 
+### Neovim (Lazy.nvim) after first install
+
+After bootstrap, the first time you open Neovim the plugin manager may not have synced yet. If you see errors about `nvim-treesitter` or missing modules:
+
+1. Run **`:Lazy sync`** in Neovim so Lazy.nvim installs all plugins (including nvim-treesitter), then restart Neovim.
+2. For **nvim-treesitter** grammar updates (`:TSUpdate`), install the [tree-sitter CLI](https://github.com/tree-sitter/tree-sitter) (0.26.1+): on macOS `brew install tree-sitter`; on Debian/Ubuntu `sudo apt install tree-sitter` (or build from source if the package is older).
+
 ## Testing
 
 ### Docker smoke tests
