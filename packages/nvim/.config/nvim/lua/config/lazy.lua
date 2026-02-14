@@ -51,6 +51,7 @@ require("lazy").setup({
     "nvim-treesitter/nvim-treesitter",
     lazy = false, -- plugin does not support lazy-loading (see nvim-treesitter wiki)
     build = ":TSUpdate",
+    lazy = false,
     config = function()
       local ok, configs = pcall(require, "nvim-treesitter.configs")
       if not ok or not configs then
