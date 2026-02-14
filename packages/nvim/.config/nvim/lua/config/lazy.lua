@@ -50,7 +50,10 @@ require("lazy").setup({
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
+    lazy = false,
     config = function()
+      -- Require main module first so the plugin is on rtp before configs submodule.
+      require("nvim-treesitter")
       require("nvim-treesitter.configs").setup({
         highlight = { enable = true },
         indent = { enable = true },
