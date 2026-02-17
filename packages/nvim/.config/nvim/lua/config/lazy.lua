@@ -64,7 +64,7 @@ require("lazy").setup({
       configs.setup({
         highlight = { enable = true },
         indent = { enable = true },
-        ensure_installed = { "lua", "bash", "python", "json", "yaml" },
+        ensure_installed = { "lua", "bash", "python", "json", "yaml", "c", "cpp" },
       })
     end,
   },

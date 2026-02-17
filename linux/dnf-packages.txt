@@ -6,6 +6,7 @@ tmux
 ripgrep
 fd-find
 fzf
+ninja-build
 @development-tools
 cmake
 openssl-devel
