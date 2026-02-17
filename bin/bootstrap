@@ -129,6 +129,7 @@ DEFAULT_APT_PACKAGES=(
   fd-find
   fzf
   cmake
+  ninja-build
   build-essential
   libssl-dev
   zlib1g-dev
@@ -154,6 +155,7 @@ DEFAULT_DNF_PACKAGES=(
   fd-find
   fzf
   cmake
+  ninja-build
   @development-tools
   openssl-devel
   zlib-devel
@@ -935,7 +937,7 @@ EOF
 
 install_nvm() {
   if ((DRY_RUN)); then
-    log "[dry-run] Install nvm under $HOME/.nvm, ensure LTS default, and enable corepack"
+    log "[dry-run] Install nvm under $HOME/.nvm, ensure LTS default, enable corepack, and install neovim npm package"
     return
   fi
   if [[ ! -d "$HOME/.nvm" ]]; then
@@ -951,6 +953,9 @@ install_nvm() {
   nvm use default >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
   if command -v corepack >/dev/null 2>&1; then
     corepack enable >/dev/null 2>&1 || true
+  fi
+  if command -v npm >/dev/null 2>&1; then
+    npm install -g neovim >/dev/null 2>&1 || true
   fi
 }
 

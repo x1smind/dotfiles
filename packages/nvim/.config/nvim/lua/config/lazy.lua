@@ -49,12 +49,13 @@ require("lazy").setup({
   },
   {
     "nvim-treesitter/nvim-treesitter",
+    version = "v0.10.0",
     build = ":TSUpdate",
     config = function()
       require("nvim-treesitter.configs").setup({
         highlight = { enable = true },
         indent = { enable = true },
-        ensure_installed = { "lua", "bash", "python", "json", "yaml" },
+        ensure_installed = { "lua", "bash", "python", "json", "yaml", "c", "cpp" },
       })
     end,
   },
