@@ -951,6 +951,10 @@ install_nvm() {
   nvm install --lts >/dev/null 2>&1 || true
   nvm alias default 'lts/*'
   nvm use default >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
+  if command -v npm >/dev/null 2>&1; then
+    log "Installing Neovim Node.js provider..."
+    npm install -g neovim >/dev/null 2>&1 || true
+  fi
   if command -v corepack >/dev/null 2>&1; then
     corepack enable >/dev/null 2>&1 || true
   fi
@@ -978,8 +982,19 @@ install_pyenv() {
   export PYENV_ROOT="$HOME/.pyenv"
   export PATH="$PYENV_ROOT/bin:$PATH"
   eval "$(pyenv init -)"
+  if [[ "$DETECTED_UNAME" == "Darwin" ]] && command -v brew >/dev/null 2>&1; then
+    local b_prefix
+    b_prefix="$(brew --prefix)"
+    export LDFLAGS="-L${b_prefix}/opt/openssl@3/lib -L${b_prefix}/opt/readline/lib -L${b_prefix}/opt/sqlite/lib -L${b_prefix}/opt/zlib/lib -L${b_prefix}/opt/bzip2/lib"
+    export CPPFLAGS="-I${b_prefix}/opt/openssl@3/include -I${b_prefix}/opt/readline/include -I${b_prefix}/opt/sqlite/include -I${b_prefix}/opt/zlib/include -I${b_prefix}/opt/bzip2/include"
+    export PKG_CONFIG_PATH="${b_prefix}/opt/openssl@3/lib/pkgconfig:${b_prefix}/opt/readline/lib/pkgconfig:${b_prefix}/opt/sqlite/lib/pkgconfig:${b_prefix}/opt/zlib/lib/pkgconfig:${b_prefix}/opt/bzip2/lib/pkgconfig"
+  fi
   pyenv install -s 3.12.12
   pyenv global 3.12.12
+  if command -v pip >/dev/null 2>&1; then
+    log "Installing Neovim Python provider (pynvim)..."
+    pip install pynvim >/dev/null 2>&1 || true
+  fi
 }
 
 install_rbenv() {
@@ -1003,8 +1018,17 @@ install_rbenv() {
   fi
   export PATH="$HOME/.rbenv/bin:$PATH"
   eval "$(rbenv init -)"
+  if [[ "$DETECTED_UNAME" == "Darwin" ]] && command -v brew >/dev/null 2>&1; then
+    local b_prefix
+    b_prefix="$(brew --prefix)"
+    export RUBY_CONFIGURE_OPTS="--with-openssl-dir=${b_prefix}/opt/openssl@3 --with-readline-dir=${b_prefix}/opt/readline --with-libyaml-dir=${b_prefix}/opt/libyaml"
+  fi
   rbenv install -s 3.4.8
   rbenv global 3.4.8
+  if command -v gem >/dev/null 2>&1; then
+    log "Installing Neovim Ruby provider..."
+    gem install neovim >/dev/null 2>&1 || true
+  fi
 }
 
 install_tpm() {
