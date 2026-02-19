@@ -52,6 +52,7 @@ require("lazy").setup({
     lazy = false,
     branch = 'main', -- This branch requires the new naming
     build = ":TSUpdate",
+    lazy = false,
     config = function()
       -- Change 'configs' to 'config' here
       require("nvim-treesitter.config").setup({
