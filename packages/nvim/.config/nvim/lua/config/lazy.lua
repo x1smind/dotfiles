@@ -49,12 +49,18 @@ require("lazy").setup({
   },
   {
     "nvim-treesitter/nvim-treesitter",
+    lazy = false,
+    branch = 'main', -- This branch requires the new naming
     build = ":TSUpdate",
     config = function()
-      require("nvim-treesitter.configs").setup({
+      -- Change 'configs' to 'config' here
+      require("nvim-treesitter.config").setup({
+        ensure_installed = { 
+          "bash", "html", "lua", "markdown", "javascript", "typescript", 
+          "python", "go", "c", "php", "astro", "vim", "vimdoc", "query" 
+        },
         highlight = { enable = true },
         indent = { enable = true },
-        ensure_installed = { "lua", "bash", "python", "json", "yaml" },
       })
     end,
   },
